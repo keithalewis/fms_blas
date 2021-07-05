@@ -18,6 +18,9 @@
     <ClInclude Include="fms_blas.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ensure.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
