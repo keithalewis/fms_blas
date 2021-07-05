@@ -378,6 +378,9 @@ namespace blas {
 		ensure(a.columns() == b.rows());
 
 		matrix<X> c(a.rows(), b.columns(), _c);
+		if constexpr (std::is_same_v<X, float>) {
+			cblas_sgemm(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
+		}
 		if constexpr (std::is_same_v<X, double>) {
 			cblas_dgemm(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 		}
@@ -392,6 +395,10 @@ namespace blas {
 		ensure(a.rows() == a.columns());
 		ensure(a.uplo());
 		
+		if constexpr (std::is_same_v<X, float>) {
+			cblas_strmm(CblasRowMajor, CblasLeft, a.uplo(), a.trans(), diag,
+				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
+		}
 		if constexpr (std::is_same_v<X, double>) {
 			cblas_dtrmm(CblasRowMajor, CblasLeft, a.uplo(), a.trans(), diag, 
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());	
@@ -520,9 +527,13 @@ namespace lapack {
 	inline blas::matrix<X>& potrf(blas::matrix<X>& a)
 	{
 		ensure(a.rows() == a.columns());
+		CBLAS_UPLO ul = a.uplo();
+		ensure(ul);
 
+		if constexpr (std::is_same_v<X, float>) {
+			LAPACKE_spotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+		}
 		if constexpr (std::is_same_v<X, double>) {
-			auto ul = a.uplo();
 			LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
 		}
 
@@ -550,7 +561,6 @@ namespace lapack {
 			ensure(a.equal(m.lower()));
 
 		}
-
 
 		return 0;
 	}

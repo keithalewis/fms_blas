@@ -19,6 +19,7 @@ int main()
 
 	blas::test_mm<double>();
 
+	lapack::potrf_test<float>();
 	lapack::potrf_test<double>();
 
 	return 0;
