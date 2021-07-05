@@ -540,6 +540,23 @@ namespace lapack {
 		return a;
 	}
 
+	template<class X>
+	inline blas::matrix<X>& potri(blas::matrix<X>& a)
+	{
+		ensure(a.rows() == a.columns());
+		CBLAS_UPLO ul = a.uplo();
+		ensure(ul);
+
+		if constexpr (std::is_same_v<X, float>) {
+			LAPACKE_spotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+		}
+		if constexpr (std::is_same_v<X, double>) {
+			LAPACKE_dpotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+		}
+
+		return a;
+	}
+
 #ifdef _DEBUG
 	template<class X>
 	inline int potrf_test()
