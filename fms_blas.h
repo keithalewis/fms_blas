@@ -524,37 +524,41 @@ namespace lapack {
 
 	// a = u'u if upper, a = ll' if lower
 	template<class X>
-	inline blas::matrix<X>& potrf(blas::matrix<X>& a)
+	inline int potrf(blas::matrix<X>& a)
 	{
 		ensure(a.rows() == a.columns());
+		
+		int ret = -1;
 		CBLAS_UPLO ul = a.uplo();
 		ensure(ul);
 
 		if constexpr (std::is_same_v<X, float>) {
-			LAPACKE_spotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
 		}
 
-		return a;
+		return ret;
 	}
 
 	template<class X>
-	inline blas::matrix<X>& potri(blas::matrix<X>& a)
+	inline int potri(blas::matrix<X>& a)
 	{
 		ensure(a.rows() == a.columns());
+
+		int ret = -1;
 		CBLAS_UPLO ul = a.uplo();
 		ensure(ul);
 
 		if constexpr (std::is_same_v<X, float>) {
-			LAPACKE_spotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			LAPACKE_dpotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
 		}
 
-		return a;
+		return ret;
 	}
 
 #ifdef _DEBUG
