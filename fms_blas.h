@@ -242,9 +242,10 @@ namespace blas {
 #endif // _DEBUG
 	};
 
+	static constexpr CBLAS_UPLO CblasNoUpLo = static_cast<CBLAS_UPLO>(0);
 
 	// non owning matrix
-	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = static_cast<CBLAS_UPLO>(0)>
+	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUpLo>
 	class matrix {
 	protected:
 		std::size_t r, c;
@@ -271,14 +272,14 @@ namespace blas {
 				return false;
 
 			for (std::size_t i = 0; i < r; ++i) {
-				int jlo = (UPLO == CblasUpper) ? i : 0;
-				int jhi = (UPLO == CblasLower) ? i : c;
+				std::size_t jlo = (UPLO == CblasUpper) ? i : 0;
+				std::size_t jhi = (UPLO == CblasLower) ? i : c;
 				for (std::size_t j = jlo; j < jhi; ++j) {
 					if (operator()(i, j) != m(i, j))
 						return false;
 				}
 			}
-			
+
 			return true;
 		}
 
@@ -287,11 +288,11 @@ namespace blas {
 			return TRANS == CblasNoTrans ? i * c + j : i + j * r;
 		}
 
-		X operator()(int i, int j) const
+		X operator()(std::size_t i, std::size_t j) const
 		{
 			return a[index(i, j)];
 		}
-		X& operator()(int i, int j)
+		X& operator()(std::size_t i, std::size_t j)
 		{
 			return a[index(i, j)];
 		}
@@ -380,7 +381,7 @@ namespace blas {
 				ensure(a.columns() == 0);
 				ensure(a.size() == 0);
 				ensure(a.data() == nullptr);
-				
+
 				auto a2{ a };
 				ensure(!a2);
 				ensure(a2 == a);
@@ -411,7 +412,7 @@ namespace blas {
 			}
 			{
 				X _a[6]; // = { 1,2,3; 4;5,6 }' = {1,4; 2,5; 3,6}
-				matrix<X,CblasTrans> a(3, 2, _a);
+				matrix<X, CblasTrans> a(3, 2, _a);
 				std::iota(a.begin(), a.end(), X(1));
 				ensure(a.rows() == 3);
 				ensure(a.columns() == 2);
@@ -429,13 +430,40 @@ namespace blas {
 			return 0;
 		}
 
-#endif // _DEBUG	
-	};
+#endif // _DEBUG
+	}; // matrix
 
-} // namespace blas
+	template<std::size_t N, typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUpLo>
+	class identity_matrix : public matrix<X,TRANS,UPLO>
+	{
+		X id[N*N];
+	public:
+		identity_matrix()
+			: matrix<X,TRANS,UPLO>(N, N)
+		{
+			matrix<X, TRANS, UPLO>::a = id;
+			for (std::size_t i = 0; i < N; ++i)
+				matrix<X,TRANS,UPLO>::operator()(i, i) = 1;
+		}
 
+#ifdef _DEBUG
+		static int test()
+		{
+			{
+				identity_matrix<3,X> id;
+				ensure(id.rows() == 3);
+				ensure(id.columns() == 3);
+				for (std::size_t i = 0; i < 3; ++i) {
+					for (std::size_t j = 0; j < 3; ++j) {
+						ensure(id(i, j) == X(i == j));
+					}
+				}
+			}
 
-#if 0
+			return 0;
+		}
+#endif // _DEBUG
+	}; // identity_matrix
 
 	//
 	// BLAS level 1
@@ -451,21 +479,57 @@ namespace blas {
 	//
 	// BLAS level 3
 	// 
-	// matrix multiplication with preallocated memory in _c
-	template<class X>
-	inline matrix<X> gemm(const matrix<X>& a, const matrix<X>& b, X* _c, X alpha = 1, X beta = 0)
+	// general matrix multiplication with preallocated memory in _c
+	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB>
+	inline matrix<X> gemm(const matrix<X,TA, CblasNoUpLo>& a, const matrix<X,TB, CblasNoUpLo>& b, X* _c, X alpha = 1, X beta = 0)
 	{
 		matrix<X> c(a.rows(), b.columns(), _c);
 
 		if constexpr (std::is_same_v<X, float>) {
-			cblas_sgemm(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
+			cblas_sgemm(CblasRowMajor, TA, TB, a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			cblas_dgemm(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
+			cblas_dgemm(CblasRowMajor, TA, TB, a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 		}
 
 		return c;
 	}
+
+#ifdef _DEBUG
+	template<class X>
+	inline int gemm_test()
+	{
+		{
+			X _a[6];
+			matrix<X> a(2, 3, _a); // [1 2 3; 4 5 6]
+			std::iota(a.begin(), a.end(), X(1));
+
+			X _c[6];
+			matrix<X> c(2, 3, _c);
+
+			c = gemm<X>(identity_matrix<2, X>{}, a, c.data());
+			ensure(c.equal(a));
+
+			c = gemm<X>(a, identity_matrix<3, X>{}, c.data());
+			ensure(c.equal(a));
+
+			/*
+			a.transpose(); // [1 4; 2 5; 3 6]
+			c = blas::gemm<X>(transpose(a, id(2), _c);
+			ensure(c.rows() == 3);
+			ensure(c.columns() == 2);
+			ensure(c.equal(a));
+			*/
+		}
+
+		return 0;
+	}
+
+#endif // _DEBUG
+
+} // namespace blas
+#if 0
+
 
 	// b = op(a)*b;
 	template<class X>
@@ -530,27 +594,6 @@ namespace blas {
 	template<class X>
 	using upper = matrix<X>::upper;
 
-	template<class X>
-	inline int test_mm()
-	{
-		{
-			X _i[] = { 1, 0, 0, 1 };
-			X _a[] = { 1, 2, 3, 4, 5, 6 };
-			X _c[6];
-			matrix<X> id(2, 2, _i);
-			matrix<X> a(2, 3, _a); // [1 2 3; 4 5 6]
-
-			auto c = blas::gemm<X>(id, a, _c);
-			ensure(c.rows() == 2);
-			ensure(c.columns() == 3);
-			ensure(vector<X>(6, _a).equal(vector<X>(6, _c)));
-			
-			a.transpose(); // [1 4; 2 5; 3 6]
-			c = gemm<X>(a, id, _c);
-			ensure(c.rows() == 3);
-			ensure(c.columns() == 2);
-			ensure(c.equal(a));
-		}
 		{
 			X _i[] = { 1, 2, 3, 1 };
 			X _a[6];
@@ -623,7 +666,9 @@ namespace blas {
 		return 0;
 	}
 
-} // namespace blas
+
+
+
 
 // !!! move to fms_lapack.h
 namespace lapack {
