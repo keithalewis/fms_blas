@@ -531,6 +531,32 @@ namespace blas {
 		return b;
 	}
 
+	// multiply by diagonal matrix
+	template<class X>
+	inline matrix<X>& diag(matrix<X>& a, const vector<X>& d)
+	{
+		// row vector times scalar
+		for (int i = 0; i < d; ++i) {
+			if constexpr (std::is_same_v<X, double>) {
+				blas_dscal(d.size(), d[i], a.data() + i * a.ld(), 1);
+			}
+		}
+
+		return a;
+	}
+	template<class X>
+	inline matrix<X>& diag(const vector<X>& d, matrix<X>& a)
+	{
+		// columns vector times scalar
+		for (int i = 0; i < d; ++i) {
+			if constexpr (std::is_same_v<X, double>) {
+				blas_dscal(d.size(), d[i], a.data() + i, a.ld());
+			}
+		}
+
+		return a;
+	}
+
 	template<class X>
 	using upper = matrix<X>::upper;
 
