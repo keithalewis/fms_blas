@@ -29,13 +29,58 @@ namespace blas {
 			: n(n), v(v)
 		{ }
 		template<size_t N>
-		vector(X(&v)[N])
+		vector(X (&v)[N])
 			: n(static_cast<int>(N)), v(v)
 		{ }
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
 		~vector()
 		{ }
+
+		X* begin()
+		{
+			return v;
+		}
+		const X* begin() const
+		{
+			return v;
+		}
+		X* end()
+		{
+			return v + abs(n);
+		}
+		const X* end() const
+		{
+			return v + abs(n);
+		}
+
+		vector& assign(int _n, X* _v)
+		{
+			for (int i; i < _n and i < abs(n); ++i) {
+				v[i] = _v[i];
+			}
+
+			return *this;
+		}
+		vector& assign(const std::initializer_list<X>& _v)
+		{
+			return assign(static_cast<int>(_v.size()), _v.begin());
+		}
+		vector& assign(const vector& _v)
+		{
+			return assign(_v.size(), _v.data());
+		}
+		// assign
+		template<class I>
+		vector& assign(I i)
+		{
+			for (int j = 0; j < size(); ++j) {
+				v[j] = *i;
+				++i;
+			}
+
+			return *this;
+		}
 
 		explicit operator bool() const
 		{
@@ -45,10 +90,6 @@ namespace blas {
 		bool equal(const vector& v_) const
 		{
 			return n == v_.n and n == 0 or std::equal(v, v + abs(n), v_.v);
-		}
-		bool equal(const std::initializer_list<X>& x) const
-		{
-			return static_cast<size_t>(size()) == x.size() and std::equal(v, v + abs(n), x.begin());
 		}
 
 		int size() const
@@ -72,22 +113,101 @@ namespace blas {
 			return v[i];
 		}
 
-		// row or column vector
-		CBLAS_TRANSPOSE trans() const
+		struct slice {
+			using iterator_category = std::forward_iterator_tag;
+			using value_type = int;
+
+			int start, size, stride;
+			slice(int start = 0, int size = 0, int stride = 0)
+				: start(start), size(size), stride(stride)
+			{ }
+			
+			bool operator==(const slice&) const = default;
+
+			auto begin() const
+			{
+				return *this;
+			}
+			auto end() const
+			{
+				return slice(start, 0, stride);
+			}
+
+			value_type operator*() const
+			{
+				return start;
+			}
+			slice& operator++()
+			{
+				if (size) {
+					start += stride;
+					--size;
+				}
+
+				return *this;
+			}
+			slice operator++(int)
+			{
+				auto tmp{ *this };
+
+				operator++();
+
+				return tmp;
+			}
+		};
+
+		class iota {
+			X x;
+		public:
+			using iterator_category = std::forward_iterator_tag;
+			using value_type = X;
+
+			iota(X x = 0)
+				: x(x)
+			{ }
+
+			iota begin() const
+			{
+				return *this;
+			}
+			iota end() const
+			{
+				return iota(std::numeric_limits<X>::max());
+			}
+
+			auto operator<=>(const iota&) const = default;
+			explicit operator bool() const
+			{
+				return true;
+			}
+			value_type operator*() const
+			{
+				return x;
+			}
+			iota& operator++()
+			{
+				++x;
+
+				return *this;
+			}
+			iota operator++(int)
+			{
+				auto tmp{ x };
+
+				++x;
+
+				return tmp;
+			}
+		};
+		vector& assign(const vector<X>::slice& s, const X* v_)
 		{
-			return n > 0 ? CblasNoTrans : n < 0 ? CblasTrans
-				: static_cast<CBLAS_TRANSPOSE>(0);
-		}
-		vector& transpose()
-		{
-			n = -n;
+			for (auto i : s) {
+				v[i] = *v_++;
+			}
 
 			return *this;
 		}
-		static vector transpose(vector v)
-		{
-			return v.transpose();
-		}
+
 #ifdef _DEBUG
 		static int test()
 		{
@@ -97,7 +217,6 @@ namespace blas {
 				ensure(!v);
 				ensure(v.size() == 0);
 				ensure(v.data() == nullptr);
-				ensure(v.trans() == 0);
 
 				blas::vector<X> v2{ v };
 				ensure(!v2);
@@ -115,20 +234,10 @@ namespace blas {
 				ensure(v.size() == 3);
 				ensure(v[0] == 1);
 
-				ensure(v.equal({ X(1),X(2),X(3) }));
 
 				// blas::vector<X> v2(&_v[0]);
 				blas::vector<X> v2(3, &_v[0]);
 				ensure(v2.equal(v));
-				ensure(v2.trans() == CblasNoTrans);
-				v2.transpose();
-				ensure(v2.trans() == CblasTrans);
-				ensure(v2);
-				ensure(v2.size() == 3);
-				ensure(v2[0] == 1);
-				ensure(v2 != v);
-				ensure(v2 == transpose(v));
-				ensure(transpose(v2) == v);
 
 				v[1] = X(4);
 				ensure(v[1] == X(4));
@@ -140,6 +249,8 @@ namespace blas {
 		}
 #endif // _DEBUG
 	};
+
+	
 
 	inline int index(int i, int j, int ld)
 	{
@@ -375,9 +486,8 @@ namespace blas {
 	template<class X>
 	inline matrix<X> gemm(const matrix<X>& a, const matrix<X>& b, X* _c, X alpha = 1, X beta = 0)
 	{
-		ensure(a.columns() == b.rows());
-
 		matrix<X> c(a.rows(), b.columns(), _c);
+
 		if constexpr (std::is_same_v<X, float>) {
 			cblas_sgemm(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 		}
@@ -461,13 +571,13 @@ namespace blas {
 			matrix<X> id(2, 2, _i);
 			matrix<X> a(2, 3, _a); // [1 2 3; 4 5 6]
 
-			auto c = gemm(id, a, _c);
+			auto c = blas::gemm<X>(id, a, _c);
 			ensure(c.rows() == 2);
 			ensure(c.columns() == 3);
 			ensure(vector<X>(6, _a).equal(vector<X>(6, _c)));
 			
 			a.transpose(); // [1 4; 2 5; 3 6]
-			c = gemm(a, id, _c);
+			c = gemm<X>(a, id, _c);
 			ensure(c.rows() == 3);
 			ensure(c.columns() == 2);
 			ensure(c.equal(a));
@@ -483,7 +593,7 @@ namespace blas {
 			// = [1 + 8, 2 + 10, 3 + 12
 			//    4      5       6]
 			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm(matrix<X>::upper(i), a);
+			trmm<X>(matrix<X>::upper(i), a);
 			ensure(a.rows() == 2);
 			ensure(a.columns() == 3);
 			ensure(a(0, 0) == 9);
@@ -498,7 +608,7 @@ namespace blas {
 			// = [1      2      3
 			//    3 + 4, 6 + 5, 9 + 6]
 			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm(matrix<X>::lower(i), a);
+			trmm<X>(matrix<X>::lower(i), a);
 			ensure(a.rows() == 2);
 			ensure(a.columns() == 3); 
 			ensure(a(0, 0) == 1); ensure(a(0, 1) == 2); ensure(a(0, 2) == 3);
@@ -512,7 +622,7 @@ namespace blas {
 			//    5, 10 + 6]
 			a = matrix<X>(3, 2, _a);
 			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm(a, matrix<X>::upper(i));
+			trmm<X>(a, matrix<X>::upper(i));
 			ensure(a.rows() == 3);
 			ensure(a.columns() == 2);
 			ensure(a(0, 0) == 1);
@@ -530,7 +640,7 @@ namespace blas {
 			//    5 + 18, 6]
 			a = matrix<X>(3, 2, _a);
 			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm(a, matrix<X>::lower(i));
+			trmm<X>(a, matrix<X>::lower(i));
 			ensure(a.rows() == 3);
 			ensure(a.columns() == 2);
 			ensure(a(0, 0) == 7);
@@ -555,7 +665,7 @@ namespace lapack {
 	{
 		ensure(a.rows() == a.columns());
 		
-		int ret = -1;
+		int ret = INT_MAX;
 		CBLAS_UPLO ul = a.uplo();
 		ensure(ul);
 
@@ -574,7 +684,7 @@ namespace lapack {
 	{
 		ensure(a.rows() == a.columns());
 
-		int ret = -1;
+		int ret = INT_MAX;
 		CBLAS_UPLO ul = a.uplo();
 		ensure(ul);
 
@@ -607,7 +717,23 @@ namespace lapack {
 			a = blas::gemm(m, blas::matrix<X>::transpose(m), a.data()); // [1 3; 3 10]
 			potrf<X>(a.lower());
 			ensure(a.equal(m.lower()));
+		}
+		{
+			X _a[4];
+			X _b[4];
 
+			blas::matrix<X> a(2, 2, _a);
+			blas::matrix<X> b(2, 2, _b);
+			a.assign({ X(1), X(2), X(2), X(5) });
+			b.assign(a);
+
+			potrf<X>(b.upper());
+			potri<X>(b);
+
+			X _c[4];
+			blas::matrix<X> c(2, 2, _c);
+			c = blas::gemm(a, b, c.data());
+			ensure(c(0, 0) == 1);
 		}
 
 		return 0;
