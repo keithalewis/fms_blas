@@ -11,31 +11,74 @@
 #include <compare>
 #include <stdexcept>
 #include <iterator>
+#include <numeric>
 #include <type_traits>
 #include "ensure.h"
 
 namespace blas {
 
-	// non-owning row (n > 0) or column (n < 0) vector
+#pragma warning(push)
+#pragma warning(disable: 4724)
+	// mod returning [0, y) 
+	template<typename T>
+	//	requires std::is_integral_v<T>
+	inline T xmod(T x, T y)
+	{
+		T z = x % y;
+
+		return z >= 0 ? z : z + y;
+	}
+#pragma warning(pop)
+
+	// non-owning vector
 	template<typename X>
 	class vector {
 	protected:
-		int n;
+		std::size_t n;
 		X* v;
 	public:
 		using type = typename X;
 
-		vector(int n = 0, X* v = nullptr)
+		vector(std::size_t n = 0, X* v = nullptr)
 			: n(n), v(v)
 		{ }
 		template<size_t N>
-		vector(X (&v)[N])
-			: n(static_cast<int>(N)), v(v)
+		vector(X(&v)[N])
+			: n(N), v(v)
 		{ }
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
 		~vector()
 		{ }
+
+		explicit operator bool() const
+		{
+			return n != 0;
+		}
+		// size and pointer equality
+		auto operator<=>(const vector&) const = default;
+
+		std::size_t size() const
+		{
+			return n;
+		}
+		X* data()
+		{
+			return v;
+		}
+		const X* data() const
+		{
+			return v;
+		}
+		// cyclic index
+		X operator[](std::size_t i) const
+		{
+			return v[i % n];
+		}
+		X& operator[](std::size_t i)
+		{
+			return v[i % n];
+		}
 
 		X* begin()
 		{
@@ -47,165 +90,27 @@ namespace blas {
 		}
 		X* end()
 		{
-			return v + abs(n);
+			return v + n;
 		}
 		const X* end() const
 		{
-			return v + abs(n);
+			return v + n;
 		}
 
-		vector& assign(int _n, X* _v)
-		{
-			for (int i; i < _n and i < abs(n); ++i) {
-				v[i] = _v[i];
-			}
-
-			return *this;
-		}
-		vector& assign(const std::initializer_list<X>& _v)
-		{
-			return assign(static_cast<int>(_v.size()), _v.begin());
-		}
-		vector& assign(const vector& _v)
-		{
-			return assign(_v.size(), _v.data());
-		}
-		// assign
+		// unsafe assignment from iterator
 		template<class I>
-		vector& assign(I i)
+		vector& copy(const I& i)
 		{
-			for (int j = 0; j < size(); ++j) {
-				v[j] = *i;
-				++i;
-			}
+			std::copy(i.begin(), i.end(), begin());
 
 			return *this;
 		}
 
-		explicit operator bool() const
+		// unsafe content equality
+		template<class I>
+		bool equal(const I& i) const
 		{
-			return n != 0;
-		}
-		auto operator<=>(const vector&) const = default;
-		bool equal(const vector& v_) const
-		{
-			return n == v_.n and n == 0 or std::equal(v, v + abs(n), v_.v);
-		}
-
-		int size() const
-		{
-			return abs(n);
-		}
-		X* data()
-		{
-			return v;
-		}
-		const X* data() const
-		{
-			return v;
-		}
-		X operator[](int i) const
-		{
-			return v[i];
-		}
-		X& operator[](int i)
-		{
-			return v[i];
-		}
-
-		struct slice {
-			using iterator_category = std::forward_iterator_tag;
-			using value_type = int;
-
-			int start, size, stride;
-			slice(int start = 0, int size = 0, int stride = 0)
-				: start(start), size(size), stride(stride)
-			{ }
-			
-			bool operator==(const slice&) const = default;
-
-			auto begin() const
-			{
-				return *this;
-			}
-			auto end() const
-			{
-				return slice(start, 0, stride);
-			}
-
-			value_type operator*() const
-			{
-				return start;
-			}
-			slice& operator++()
-			{
-				if (size) {
-					start += stride;
-					--size;
-				}
-
-				return *this;
-			}
-			slice operator++(int)
-			{
-				auto tmp{ *this };
-
-				operator++();
-
-				return tmp;
-			}
-		};
-
-		class iota {
-			X x;
-		public:
-			using iterator_category = std::forward_iterator_tag;
-			using value_type = X;
-
-			iota(X x = 0)
-				: x(x)
-			{ }
-
-			iota begin() const
-			{
-				return *this;
-			}
-			iota end() const
-			{
-				return iota(std::numeric_limits<X>::max());
-			}
-
-			auto operator<=>(const iota&) const = default;
-			explicit operator bool() const
-			{
-				return true;
-			}
-			value_type operator*() const
-			{
-				return x;
-			}
-			iota& operator++()
-			{
-				++x;
-
-				return *this;
-			}
-			iota operator++(int)
-			{
-				auto tmp{ x };
-
-				++x;
-
-				return tmp;
-			}
-		};
-		vector& assign(const vector<X>::slice& s, const X* v_)
-		{
-			for (auto i : s) {
-				v[i] = *v_++;
-			}
-
-			return *this;
+			return std::equal(i.begin(), i.end(), begin()/*, end()*/);
 		}
 
 #ifdef _DEBUG
@@ -228,12 +133,16 @@ namespace blas {
 				ensure(v.equal(v2));
 			}
 			{
-				X _v[] = { 1,2,3 };
+				X _v[3];
 				blas::vector<X> v(_v);
+				std::iota(v.begin(), v.end(), X(1));
 				ensure(v);
 				ensure(v.size() == 3);
 				ensure(v[0] == 1);
-
+				ensure(v[1] == 2);
+				ensure(v[2] == 3);
+				ensure(v[4] == 2);
+				ensure(_v[1] == 2);
 
 				// blas::vector<X> v2(&_v[0]);
 				blas::vector<X> v2(3, &_v[0]);
@@ -243,6 +152,7 @@ namespace blas {
 				ensure(v[1] == X(4));
 				_v[1] = X(5);
 				ensure(v[1] == X(5));
+				ensure(v[v.size() + 1] == v[1]);
 			}
 
 			return 0;
@@ -250,33 +160,104 @@ namespace blas {
 #endif // _DEBUG
 	};
 
-	
+	template<class X, class I>
+	class indirect_vector {
+		// operator[](I::type j) { return v[i[j]]; }
+	};
 
-	inline int index(int i, int j, int ld)
-	{
-		return i * ld + j;
-	}
-	inline bool samesign(int i, int j)
-	{
-		return (i >= 0) ^ (j < 0);
-	}
+	template<class I = std::size_t>
+	class slice {
+		I start, size, stride;
+	public:
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = I;
+		using difference_type = std::ptrdiff_t;
+		using pointer = I*;
+		using reference = I&;
+
+		slice(I start, I size, I stride = 1)
+			: start(start), size(size), stride(stride)
+		{ }
+		slice(const slice&) = default;
+		slice& operator=(const slice&) = default;
+		~slice()
+		{ }
+
+		explicit operator bool() const
+		{
+			return size != 0;
+		}
+		auto operator<=>(const slice&) const = default;
+
+		auto begin() const
+		{
+			return *this;
+		}
+		auto end() const
+		{
+			return slice(start + size*stride, 0, stride);
+		}
+
+		value_type operator*() const
+		{
+			return start;
+		}
+		slice& operator++()
+		{
+			if (size) {
+				start += stride;
+				--size;
+			}
+
+			return *this;
+		}
+		slice operator++(int)
+		{
+			auto tmp{ *this };
+
+			operator++();
+
+			return tmp;
+		}
+#ifdef _DEBUG
+
+		template<class X>
+		static int test()
+		{
+			{
+				X _v1[3];
+				X _v2[3];
+
+				auto v1 = vector<X>(_v1);
+				vector<X> v2(_v2);
+
+				std::iota(v1.begin(), v1.end(), X(1));
+				v2.copy(slice<X>(1, 3));
+				ensure(v1.equal(v2));
+			}
+
+			return 0;
+		}
+
+#endif // _DEBUG
+	};
+
 
 	// non owning matrix
-	template<typename X>
+	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = static_cast<CBLAS_UPLO>(0)>
 	class matrix {
 	protected:
-		int r, c;
+		std::size_t r, c;
 		X* a;
-		CBLAS_UPLO ul = static_cast<CBLAS_UPLO>(0);
 	public:
 		using type = X;
 
-		matrix(int r = 0, int c = 0, X* a = nullptr)
+		matrix(std::size_t r = 0, std::size_t c = 0, X* a = nullptr)
 			: r(r), c(c), a(a)
 		{ }
 		matrix(const matrix&) = default;
 		matrix& operator=(const matrix&) = default;
-		virtual ~matrix()
+		~matrix()
 		{ }
 
 		explicit operator bool() const
@@ -284,16 +265,16 @@ namespace blas {
 			return r != 0 and c != 0;
 		}
 		auto operator<=>(const matrix&) const = default;
-		bool equal(const matrix& a_) const
+		bool equal(const matrix& m) const
 		{
-			if (rows() != a_.rows() or columns() != a_.columns() or ul != a_.ul)
+			if (r != m.r or c != m.c)
 				return false;
 
-			for (int i = 0; i < rows(); ++i) {
-				int jlo = (ul == CblasUpper) ? i : 0;
-				int jhi = (ul == CblasLower) ? i : columns();
-				for (int j = jlo; j < jhi; ++j) {
-					if (operator()(i, j) != a_(i, j))
+			for (std::size_t i = 0; i < r; ++i) {
+				int jlo = (UPLO == CblasUpper) ? i : 0;
+				int jhi = (UPLO == CblasLower) ? i : c;
+				for (std::size_t j = jlo; j < jhi; ++j) {
+					if (operator()(i, j) != m(i, j))
 						return false;
 				}
 			}
@@ -301,39 +282,9 @@ namespace blas {
 			return true;
 		}
 
-		matrix& assign(int n, const X* pa)
+		std::size_t index(std::size_t i, std::size_t j) const
 		{
-			for (int i = 0; i < size() and i < n; ++i)
-				a[i] = pa[i];
-
-			return *this;
-		}
-		matrix& assign(const std::initializer_list<X>& x)
-		{
-			return assign(static_cast<int>(x.size()), x.begin());
-		}
-		matrix& assign(const matrix& m)
-		{
-			ensure(size() >= m.size());
-
-			r = m.r;
-			c = m.c;
-
-			return assign(m.size(), m.data());
-		}
-
-		CBLAS_TRANSPOSE trans() const
-		{
-			return r > 0 ? CblasNoTrans : r < 0 ? CblasTrans : static_cast<CBLAS_TRANSPOSE>(0);
-		}
-		CBLAS_UPLO uplo() const
-		{
-			return ul;
-		}
-
-		int index(int i, int j) const
-		{
-			return trans() == CblasNoTrans ? blas::index(i, j, columns()) : blas::index(j, i, rows());
+			return TRANS == CblasNoTrans ? i * c + j : i + j * r;
 		}
 
 		X operator()(int i, int j) const
@@ -345,21 +296,44 @@ namespace blas {
 			return a[index(i, j)];
 		}
 
+		// unsafe linear copy
+		template<class I>
+		matrix& copy(const I& i)
+		{
+			std::copy(i.begin(), i.end(), a);
+
+			return *this;
+		}
+		matrix& copy(const matrix& m)
+		{
+			for (std::size_t i = 0; i < r; ++i) {
+				int jlo = (UPLO == CblasUpper) ? i : 0;
+				int jhi = (UPLO == CblasLower) ? i : c;
+				for (std::size_t j = jlo; j < jhi; ++j) {
+					operator()(i, j) == m(i, j);
+				}
+			}
+
+			return *this;
+		}
+
+		// int for BLAS
 		int rows() const
 		{
-			return abs(r);
+			return static_cast<int>(r);
 		}
 		int columns() const
 		{
-			return abs(c);
+			return static_cast<int>(c);
 		}
 		int size() const
 		{
-			return rows() * columns();
+			return static_cast<int>(r * c);
 		}
-		int ld() const // default leading dimension
+		// leading dimension
+		int ld() const
 		{
-			return trans() == CblasNoTrans ? columns() : trans() == CblasTrans ? rows() : 0;
+			return TRANS == CblasNoTrans ? columns() : rows();
 		}
 		X* data()
 		{
@@ -369,47 +343,30 @@ namespace blas {
 		{
 			return a;
 		}
-		matrix& transpose()
+		X* begin()
 		{
-			r = -r;
-			c = -c;
-			std::swap(r, c);
+			return a;
+		}
+		const X* begin() const
+		{
+			return a;
+		}
+		X* end()
+		{
+			return a + r * c;
+		}
+		const X* end() const
+		{
+			return a + r * c;
+		}
 
-			return *this;
-		}
-		static matrix transpose(matrix m)
+		auto transpose() const
 		{
-			return m.transpose();
+			return matrix<X, TRANS == CblasNoTrans ? CblasTrans : CblasNoTrans>(c, r, a);
 		}
-		matrix& upper()
+		auto uplo(CBLAS_UPLO uplo) const
 		{
-			ul = CblasUpper;
-
-			return *this;
-		}
-		static matrix<X> upper(matrix<X> u)
-		{
-			return u.upper();
-		}
-		matrix& lower()
-		{
-			ul = CblasLower;
-
-			return *this;
-		}
-		static matrix lower(matrix l)
-		{
-			return l.lower();
-		}
-		matrix& full()
-		{
-			ul = static_cast<CBLAS_UPLO>(0);
-
-			return *this;
-		}
-		static matrix full(matrix m)
-		{
-			return m.full();
+			return matrix<X, TRANS, uplo>(r, c, a);
 		}
 
 #ifdef _DEBUG
@@ -441,24 +398,32 @@ namespace blas {
 				ensure(!(a != a2));
 			}
 			{
-				X _a[] = { 1,2,3,4,5,6 };
+				X _a[6]; // = { 1,2,3; 4,5,6 };
 				matrix<X> a(2, 3, _a);
+				std::iota(a.begin(), a.end(), X(1));
 				ensure(a.rows() == 2);
 				ensure(a.columns() == 3);
 				ensure(a.size() == 6);
-				ensure(a.trans() == CblasNoTrans);
 				ensure(a(0, 0) == 1);
+				ensure(a(0, 1) == 2);
 				ensure(a(1, 0) == 4);
 				ensure(a(1, 2) == 6);
-				a.transpose(); 
+			}
+			{
+				X _a[6]; // = { 1,2,3; 4;5,6 }' = {1,4; 2,5; 3,6}
+				matrix<X,CblasTrans> a(3, 2, _a);
+				std::iota(a.begin(), a.end(), X(1));
 				ensure(a.rows() == 3);
 				ensure(a.columns() == 2);
 				ensure(a(0, 0) == 1);
-				ensure(a(0, 1) == 4);
+				ensure(a(0, 1) == 4); // 0 + 3*1
+				ensure(a(1, 0) == 2); // 1 + 3*0
+				ensure(a(1, 1) == 5); // 1 + 3*1
+				ensure(a(2, 0) == 3); // 0 + 3*0
 				ensure(a(2, 1) == 6);
 				a(0, 1) = 7;
 				ensure(a(0, 1) == 7);
-				ensure(transpose(a)(1, 0) == 7);
+				ensure(a.transpose()(1, 0) == 7);
 			}
 
 			return 0;
@@ -467,6 +432,10 @@ namespace blas {
 #endif // _DEBUG	
 	};
 
+} // namespace blas
+
+
+#if 0
 
 	//
 	// BLAS level 1
@@ -742,7 +711,6 @@ namespace lapack {
 
 } // namespace lapack
 
-#if 0
 template<class X>
 class triangular_matrix : public matrix<X> {
 public:
@@ -788,8 +756,6 @@ public:
 	}
 #endif // _DEBUG
 };
-
-
 
 template<class X>
 struct identity_matrix : public matrix<X> {
