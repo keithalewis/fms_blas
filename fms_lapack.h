@@ -56,12 +56,19 @@ namespace lapack {
 			auto au = a.uplo<CblasUpper>();
 			potrf(au);
 			ensure(au.equal(m.uplo<CblasUpper>()));
-			/*
-			m.assign({ 1, 0, 3, 1 });
-			a = blas::gemm(m, blas::matrix<X>::transpose(m), a.data()); // [1 3; 3 10]
-			potrf<X>(a.lower());
-			ensure(a.equal(m.lower()));
-			*/
+		}
+		{
+			X _m[4];
+			X _a[4];
+			auto m = blas::matrix<X>(2, 2, _m);
+			auto a = blas::matrix<X>(2, 2, _a);
+
+			m.copy(std::initializer_list<X>({ 1, 0, 2, 1 }));
+			a = blas::gemm(m, m.transpose(), a.data());
+			ensure(a.equal(std::initializer_list<X>({ 1, 2, 2, 5 })));
+			auto au = a.uplo<CblasLower>();
+			potrf(au);
+			ensure(au.equal(m.uplo<CblasLower>()));
 		}
 
 		return 0;
