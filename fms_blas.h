@@ -242,10 +242,10 @@ namespace blas {
 #endif // _DEBUG
 	};
 
-	static constexpr CBLAS_UPLO CblasNoUpLo = static_cast<CBLAS_UPLO>(0);
+	static constexpr CBLAS_UPLO CblasNoUplo = static_cast<CBLAS_UPLO>(0);
 
 	// non owning matrix
-	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUpLo>
+	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUplo>
 	class matrix {
 	protected:
 		std::size_t r, c;
@@ -441,7 +441,7 @@ namespace blas {
 #endif // _DEBUG
 	}; // matrix
 
-	template<std::size_t N, typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUpLo>
+	template<std::size_t N, typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUplo>
 	class identity_matrix : public matrix<X,TRANS,UPLO>
 	{
 		X id[N*N];
@@ -489,7 +489,7 @@ namespace blas {
 	// 
 	// general matrix multiplication with preallocated memory in _c
 	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB>
-	inline matrix<X> gemm(const matrix<X,TA, CblasNoUpLo>& a, const matrix<X,TB, CblasNoUpLo>& b, X* _c, X alpha = 1, X beta = 0)
+	inline matrix<X> gemm(const matrix<X,TA, CblasNoUplo>& a, const matrix<X,TB, CblasNoUplo>& b, X* _c, X alpha = 1, X beta = 0)
 	{
 		matrix<X> c(a.rows(), b.columns(), _c);
 
@@ -539,7 +539,7 @@ namespace blas {
 // template<X,T,U>
 // inline matrix<X,T,U> operator*(const matrix<X,T,U>& a, const matrix<X,T,U>& b);
 // template<>
-// inline matrix<X,T,CblasNoUpLo> operator*(const matrix<X,T,U>& a, const matrix<X,T,U>& b)
+// inline matrix<X,T,CblasNoUplo> operator*(const matrix<X,T,U>& a, const matrix<X,T,U>& b)
 // { return gemm(a, b); }
 
 
@@ -548,7 +548,7 @@ namespace blas {
 	inline matrix<X>& trmm(const matrix<X,TRANS,UPLO>& a, matrix<X>& b, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
-		static_assert(UPLO != CblasNoUpLo);
+		static_assert(UPLO != CblasNoUplo);
 		
 		if constexpr (std::is_same_v<X, float>) {
 			cblas_strmm(CblasRowMajor, CblasLeft, UPLO, TRANS, diag,
@@ -566,7 +566,7 @@ namespace blas {
 	inline matrix<X>& trmm(matrix<X>& b, const matrix<X,TRANS,UPLO>& a, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
-		static_assert(UPLO != CblasNoUpLo);
+		static_assert(UPLO != CblasNoUplo);
 
 		if constexpr (std::is_same_v<X, float>) {
 			cblas_strmm(CblasRowMajor, CblasRight, UPLO, TRANS, diag,
@@ -674,16 +674,68 @@ namespace blas {
 	}
 
 #endif // _DEBUG
-} // namespace blas
 
-#if 0
+	// scale rows/cols of a by d
+	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
+	inline matrix<X,TRANS,UPLO>& scal(const vector<X>& d, matrix<X,TRANS,UPLO>& a)
+	{
+		for (std::size_t i = 0; i < d.size(); ++i) {
+			std::size_t jlo = (UPLO == CblasNoUplo) ? 0 : i;
+			std::size_t jhi = (UPLO == CblasNoUplo) ? a.ld() : i;
+			for (std::size_t j = jlo; j < jhi; ++j) {
+				if constexpr (TRANS == CblasNoTrans) {
+					a(i, j) *= d[i];
+				}
+				else {
+					a(j, i) *= d[i];
+				}
+			}
+		}
+		
+		return a;
+	}
 
-	// right multiply by diagonal matrix
+#ifdef _DEBUG
+
 	template<class X>
+	inline int scal_test()
+	{
+		X _v[] = { 1,2,3 };
+		{
+			X _a[6];
+			matrix<X> a(2, 3, _a);
+			std::iota(a.begin(), a.end(), X(1));
+
+			scal(vector(2, _v), a);
+			X _b[6] = { X(1), X(2), X(3), 
+				        X(2*4), X(2*5), X(2*6) };
+			ensure(a.equal(matrix<X>(2, 3, _b)));
+		}
+		{
+			X _a[6];
+			matrix<X,CblasTrans> a(3, 2, _a);
+			std::iota(a.begin(), a.end(), X(1));
+			// {1 4; 2 5; 3 6}
+
+			scal(vector(3, _v), a);
+			X _b[6] = { X(1), X(4),
+				        X(2*2), X(2*5), 
+				        X(3*3), X(3*6) };
+			//ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
+		}
+
+		return 0;
+	}
+
+#endif // _DEBUG
+	
+	/*
+	// right multiply by diagonal matrix
+	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
 	inline matrix<X>& diag(matrix<X>& a, const vector<X>& d)
 	{
 		// row vector times scalar
-		for (int i = 0; i < d.size(); ++i) {
+		for (std::size_t i = 0; i < d.size(); ++i) {
 			if constexpr (std::is_same_v<X, double>) {
 				blas_dscal(d.size(), d[i], a.data() + i * a.ld(), 1);
 			}
@@ -696,7 +748,7 @@ namespace blas {
 	inline matrix<X>& diag(const vector<X>& d, matrix<X>& a)
 	{
 		// columns vector times scalar
-		for (int i = 0; i < d.size(); ++i) {
+		for (std::size_t i = 0; i < d.size(); ++i) {
 			if constexpr (std::is_same_v<X, double>) {
 				blas_dscal(d.size(), d[i], a.data() + i, a.ld());
 			}
@@ -704,6 +756,12 @@ namespace blas {
 
 		return a;
 	}
+	*/
+
+} // namespace blas
+
+#if 0
+
 
 
 

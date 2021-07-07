@@ -10,6 +10,7 @@ int fms_blas_test()
 	blas::identity_matrix<3,X>::test();
 	blas::gemm_test<X>();
 	blas::trmm_test<X>();
+	blas::scal_test<X>();
 
 	return 0;
 }
