@@ -12,6 +12,7 @@ int fms_blas_test()
 	blas::trmm_test<X>();
 	blas::scal_test<X>();
 	lapack::potrf_test<X>();
+	lapack::potri_test<X>();
 
 	return 0;
 }

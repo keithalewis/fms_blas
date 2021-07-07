@@ -7,18 +7,18 @@ namespace lapack {
 
 	// BLAS to LAPACK conversion
 	template<CBLAS_TRANSPOSE T>
-	struct blas_trans { static char const trans;  };
+	struct cblas_trans { static char const trans;  };
 	template<>
-	struct blas_trans<CblasTrans> { static const char trans = 'T'; };
+	struct cblas_trans<CblasTrans> { static const char trans = 'T'; };
 	template<>
-	struct blas_trans<CblasNoTrans> { static const char trans = 'N'; };
+	struct cblas_trans<CblasNoTrans> { static const char trans = 'N'; };
 
 	template<CBLAS_UPLO UL>
-	struct blas_uplo { static const char uplo; };
+	struct cblas_uplo { static const char uplo; };
 	template<>
-	struct blas_uplo<CblasUpper> { static const char uplo = 'U'; };
+	struct cblas_uplo<CblasUpper> { static const char uplo = 'U'; };
 	template<>
-	struct blas_uplo<CblasLower> { static const char uplo = 'L'; };
+	struct cblas_uplo<CblasLower> { static const char uplo = 'L'; };
 
 	// a = u'u if upper, a = ll' if lower
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
@@ -30,10 +30,10 @@ namespace lapack {
 		int ret = INT_MAX;
 
 		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, blas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, blas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 
 		return ret;
@@ -85,10 +85,10 @@ namespace lapack {
 		int ret = INT_MAX;
 
 		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, cblas_traits<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, cblas_traits<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 
 		return ret;
@@ -99,25 +99,27 @@ namespace lapack {
 	template<class X>
 	inline int potri_test()
 	{
-		/*
 		{
 			X _a[4];
 			X _b[4];
-
 			blas::matrix<X> a(2, 2, _a);
 			blas::matrix<X> b(2, 2, _b);
+			
 			a.copy(std::initializer_list<X>({ X(1), X(2), X(2), X(5) }));
 			b.copy(a);
 
-			potrf<X>(b.upper());
-			potri<X>(b);
+			auto bu = b.uplo<CblasUpper>();
+			potrf<X>(bu);
+			potri<X>(bu);
 
+			/*
 			X _c[4];
 			blas::matrix<X> c(2, 2, _c);
 			c = blas::gemm(a, b, c.data());
-			ensure(c(0, 0) == 1);
+			blas::identity_matrix<2, X> id2;
+			ensure(c.equal(id2));
+			*/
 		}
-		*/
 
 		return 0;
 	}
