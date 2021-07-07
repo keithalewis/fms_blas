@@ -682,24 +682,19 @@ namespace blas {
 
 #endif // _DEBUG
 
-	// scale rows/cols of a by v
+	// scale rows/cols of a by m
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
-	inline matrix<X,TRANS,UPLO>& scal(const vector<X>& v, matrix<X,TRANS,UPLO>& a)
+	inline matrix<X,TRANS,UPLO>& scal(const vector<X>& v, matrix<X,TRANS,UPLO>& m)
 	{
 		for (std::size_t i = 0; i < v.size(); ++i) {
 			std::size_t jlo = (UPLO == CblasNoUplo) ? 0 : i;
-			std::size_t jhi = (UPLO == CblasNoUplo) ? a.ld() : i;
+			std::size_t jhi = (UPLO == CblasNoUplo) ? m.ld() : i;
 			for (std::size_t j = jlo; j < jhi; ++j) {
-				if constexpr (TRANS == CblasNoTrans) {
-					a(i, j) *= v[i];
-				}
-				else {
-					a(j, i) *= v[i];
-				}
+				m(i, j) *= v[i];
 			}
 		}
 		
-		return a;
+		return m;
 	}
 
 #ifdef _DEBUG
@@ -713,7 +708,7 @@ namespace blas {
 			matrix<X> a(2, 3, _a);
 			std::iota(a.begin(), a.end(), X(1));
 
-			scal(vector(2, _v), a);
+			scal(vector(2, _v), a); // rows
 			X _b[6] = { X(1), X(2), X(3), 
 				        X(2*4), X(2*5), X(2*6) };
 			ensure(a.equal(matrix<X>(2, 3, _b)));
@@ -724,13 +719,14 @@ namespace blas {
 			std::iota(a.begin(), a.end(), X(1));
 			// {1 4; 2 5; 3 6}
 
-			/*
-			scal(vector(3, _v), a);
+			scal(vector(3, _v), a); // columns
+			// {1 4; 2*2 2*5; 3*3 3*6}
 			X _b[6] = { X(1), X(4),
 				        X(2*2), X(2*5), 
 				        X(3*3), X(3*6) };
-			ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
-			*/
+			//matrix<X> b(2, 3, _b); // {1 4; 4 10; 9 18}
+			//ensure(a.equal(vector(_b)));
+			
 		}
 
 		return 0;
