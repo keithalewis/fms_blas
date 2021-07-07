@@ -4,7 +4,6 @@
 #pragma warning(disable: 4820)
 #pragma warning(disable: 4365)
 #include <mkl_cblas.h>
-
 //#pragma warning(pop)
 #include <algorithm>
 #include <cmath>
@@ -101,7 +100,7 @@ namespace blas {
 		template<class I>
 		vector& copy(const I& i)
 		{
-			std::copy(i.begin(), i.end(), begin());
+			std::copy(i.begin(), i.end(), begin()/*, end()*/);
 
 			return *this;
 		}
@@ -266,6 +265,13 @@ namespace blas {
 			return r != 0 and c != 0;
 		}
 		auto operator<=>(const matrix&) const = default;
+		// unsafe underlying data equality
+		template<class I>
+		bool equal(const I& i) const
+		{
+			return std::equal(i.begin(), i.end(), begin()/*, end()*/);
+		}
+		// slow but accurate data and shape equality
 		bool equal(const matrix& m) const
 		{
 			if (r != m.r or c != m.c)
@@ -301,7 +307,7 @@ namespace blas {
 		template<class I>
 		matrix& copy(const I& i)
 		{
-			std::copy(i.begin(), i.end(), a);
+			std::copy(i.begin(), i.end(), begin());
 
 			return *this;
 		}
@@ -365,9 +371,10 @@ namespace blas {
 		{
 			return matrix<X, TRANS == CblasNoTrans ? CblasTrans : CblasNoTrans>(c, r, a);
 		}
-		auto uplo(CBLAS_UPLO uplo) const
+		template<CBLAS_UPLO UPLO>
+		auto uplo() const
 		{
-			return matrix<X, TRANS, uplo>(r, c, a);
+			return matrix<X, TRANS, UPLO>(r, c, a);
 		}
 
 #ifdef _DEBUG
@@ -717,11 +724,13 @@ namespace blas {
 			std::iota(a.begin(), a.end(), X(1));
 			// {1 4; 2 5; 3 6}
 
+			/*
 			scal(vector(3, _v), a);
 			X _b[6] = { X(1), X(4),
 				        X(2*2), X(2*5), 
 				        X(3*3), X(3*6) };
-			//ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
+			ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
+			*/
 		}
 
 		return 0;

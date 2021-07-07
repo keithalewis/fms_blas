@@ -1,5 +1,5 @@
 // fms_blas.cpp - BLAS tests
-#include "fms_blas.h"
+#include "fms_lapack.h"
 
 template<class X>
 int fms_blas_test()
@@ -11,6 +11,7 @@ int fms_blas_test()
 	blas::gemm_test<X>();
 	blas::trmm_test<X>();
 	blas::scal_test<X>();
+	lapack::potrf_test<X>();
 
 	return 0;
 }

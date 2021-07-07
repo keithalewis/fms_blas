@@ -7,33 +7,33 @@ namespace lapack {
 
 	// BLAS to LAPACK conversion
 	template<CBLAS_TRANSPOSE T>
-	struct blas_trans { char trans;  };
+	struct blas_trans { static char const trans;  };
 	template<>
-	struct blas_trans<CblasTrans> { char trans = 'T'; };
+	struct blas_trans<CblasTrans> { static const char trans = 'T'; };
 	template<>
-	struct blas_trans<CblasNoTrans> { char trans = 'N'; };
+	struct blas_trans<CblasNoTrans> { static const char trans = 'N'; };
 
 	template<CBLAS_UPLO UL>
-	struct blas_uplo { char uplo; };
+	struct blas_uplo { static const char uplo; };
 	template<>
-	struct blas_uplo<CblasUpper> { char uplo = 'U'; };
+	struct blas_uplo<CblasUpper> { static const char uplo = 'U'; };
 	template<>
-	struct blas_uplo<CblasLower> { char uplo = 'L'; };
+	struct blas_uplo<CblasLower> { static const char uplo = 'L'; };
 
 	// a = u'u if upper, a = ll' if lower
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
 	inline int potrf(blas::matrix<X, TRANS, UPLO>& a)
 	{
 		ensure(a.rows() == a.columns());
-		ensure(UPLO != cblas::CblasNoUplo);
+		static_assert(UPLO != blas::CblasNoUplo);
 
 		int ret = INT_MAX;
 
 		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, cblas_traits<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, blas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, cblas_traits<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, blas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
 		}
 
 		return ret;
@@ -47,13 +47,15 @@ namespace lapack {
 		{
 			X _m[4];
 			X _a[4];
-			auto m = blas::matrix<X>(2, 2, _m).upper();
-			auto a = blas::matrix<X>(2, 2, _a).upper();
+			auto m = blas::matrix<X>(2, 2, _m);
+			auto a = blas::matrix<X>(2, 2, _a);
 
 			m.copy(std::initializer_list<X>({ 1, 2, 0, 1 }));
-			a = blas::gemm(blas::matrix<X>::transpose(m), m, a.data()); // [1 2; 2 5]
-			potrf<X>(a.upper());
-			ensure(a.equal(m));
+			a = blas::gemm(m.transpose(), m, a.data()); 
+			ensure(a.equal(std::initializer_list<X>({ 1, 2, 2, 5 })));
+			auto au = a.uplo<CblasUpper>();
+			potrf(au);
+			ensure(au.equal(m.uplo<CblasUpper>()));
 			/*
 			m.assign({ 1, 0, 3, 1 });
 			a = blas::gemm(m, blas::matrix<X>::transpose(m), a.data()); // [1 3; 3 10]
@@ -71,7 +73,7 @@ namespace lapack {
 	inline int potri(blas::matrix<X,TRANS,UPLO>& a)
 	{
 		ensure(a.rows() == a.columns());
-		ensure(UPLO != cblas::CblasNoUplo);
+		static_assert(UPLO != blas::CblasNoUplo);
 
 		int ret = INT_MAX;
 
