@@ -4,7 +4,7 @@
 #pragma warning(disable: 4820)
 #pragma warning(disable: 4365)
 #include <mkl_cblas.h>
-#include <mkl_lapacke.h>
+
 //#pragma warning(pop)
 #include <algorithm>
 #include <cmath>
@@ -30,7 +30,7 @@ namespace blas {
 	}
 #pragma warning(pop)
 
-	// non-owning vector
+	// non-owning contiguous array of X
 	template<typename X>
 	class vector {
 	protected:
@@ -426,6 +426,14 @@ namespace blas {
 				ensure(a(0, 1) == 7);
 				ensure(a.transpose()(1, 0) == 7);
 			}
+			{
+				X _a[6]; // = { 1,2,3; 4;5,6 }' = {1,4; 2,5; 3,6}
+				matrix<X> a(3, 2, _a);
+				std::iota(a.begin(), a.end(), X(1));
+
+				// ensure(!a.equal(a.transpose())); // fails to compile
+				ensure(a.equal(a.transpose().transpose()))
+			}
 
 			return 0;
 		}
@@ -506,20 +514,20 @@ namespace blas {
 
 			X _c[6];
 			matrix<X> c(2, 3, _c);
+			identity_matrix<2, X> id2;
+			c = gemm<X>(id2, a, c.data());
+			ensure(c.equal(a));
+			std::fill(c.begin(), c.end(), X(-1));
+			// c = gemm<X>(identity_matrix<2, X>{}, a, c.data()); // garbage
 
-			c = gemm<X>(identity_matrix<2, X>{}, a, c.data());
+			identity_matrix<3, X> id3;
+			c = gemm<X>(a, id3, c.data());
 			ensure(c.equal(a));
 
-			c = gemm<X>(a, identity_matrix<3, X>{}, c.data());
-			ensure(c.equal(a));
-
-			/*
-			a.transpose(); // [1 4; 2 5; 3 6]
-			c = blas::gemm<X>(transpose(a, id(2), _c);
-			ensure(c.rows() == 3);
-			ensure(c.columns() == 2);
-			ensure(c.equal(a));
-			*/
+			//auto a_ = a.transpose(); // [1 4; 2 5; 3 6]
+			//c = blas::gemm<X>(a.transpose(), id2, _c);
+			//ensure(c.equal(a));
+			
 		}
 
 		return 0;
@@ -527,42 +535,148 @@ namespace blas {
 
 #endif // _DEBUG
 
-} // namespace blas
-#if 0
+
+// template<X,T,U>
+// inline matrix<X,T,U> operator*(const matrix<X,T,U>& a, const matrix<X,T,U>& b);
+// template<>
+// inline matrix<X,T,CblasNoUpLo> operator*(const matrix<X,T,U>& a, const matrix<X,T,U>& b)
+// { return gemm(a, b); }
 
 
 	// b = op(a)*b;
-	template<class X>
-	inline matrix<X>& trmm(const matrix<X>& a, matrix<X>& b, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
+	inline matrix<X>& trmm(const matrix<X,TRANS,UPLO>& a, matrix<X>& b, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
-		ensure(a.uplo());
+		static_assert(UPLO != CblasNoUpLo);
 		
 		if constexpr (std::is_same_v<X, float>) {
-			cblas_strmm(CblasRowMajor, CblasLeft, a.uplo(), a.trans(), diag,
+			cblas_strmm(CblasRowMajor, CblasLeft, UPLO, TRANS, diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			cblas_dtrmm(CblasRowMajor, CblasLeft, a.uplo(), a.trans(), diag, 
+			cblas_dtrmm(CblasRowMajor, CblasLeft, UPLO, TRANS, diag, 
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());	
 		}
 
 		return b;
 	}
 	// b = b*op(a);
-	template<class X>
-	inline matrix<X>& trmm(matrix<X>& b, const matrix<X>& a, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
+	inline matrix<X>& trmm(matrix<X>& b, const matrix<X,TRANS,UPLO>& a, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
-		ensure(a.uplo());
+		static_assert(UPLO != CblasNoUpLo);
 
+		if constexpr (std::is_same_v<X, float>) {
+			cblas_strmm(CblasRowMajor, CblasRight, UPLO, TRANS, diag,
+				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.columns());
+		}
 		if constexpr (std::is_same_v<X, double>) {
-			cblas_dtrmm(CblasRowMajor, CblasRight, a.uplo(), a.trans(), diag,
+			cblas_dtrmm(CblasRowMajor, CblasRight, UPLO, TRANS, diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.columns());
 		}
 
 		return b;
 	}
+
+#ifdef _DEBUG
+
+	template<class X>
+	inline int trmm_test()
+	{
+		{
+			X _i[] = { 1, 2, 3, 1 };
+			const matrix<X, CblasNoTrans, CblasUpper> i(2, 2, _i); // [1 2; 3 1]
+			X _a[6];
+			matrix<X> a(2, 3, _a);
+			std::iota(a.begin(), a.end(), X(1));
+
+			// [1 2  * [1 2 3
+			//  . 1] *  4 5 6]
+			// = [1 + 8, 2 + 10, 3 + 12
+			//    4      5       6]
+			trmm<X>(i, a);
+			ensure(a.rows() == 2);
+			ensure(a.columns() == 3);
+			ensure(a(0, 0) == 9);
+			ensure(a(0, 1) == 12);
+			ensure(a(0, 2) == 15);
+			ensure(a(1, 0) == 4);
+			ensure(a(1, 1) == 5);
+			ensure(a(1, 2) == 6);
+		}
+		{
+			X _i[] = { 1, 2, 3, 1 };
+			const matrix<X, CblasNoTrans, CblasLower> i(2, 2, _i); // [1 2; 3 1]
+			X _a[6];
+			matrix<X> a(2, 3, _a);
+			std::iota(a.begin(), a.end(), X(1));
+			
+			// [1 .  * [1 2 3
+			//  3 1] *  4 5 6]
+			// = [1      2      3
+			//    3 + 4, 6 + 5, 9 + 6]
+			trmm<X>(i, a);
+			ensure(a.rows() == 2);
+			ensure(a.columns() == 3);
+			ensure(a(0, 0) == 1); ensure(a(0, 1) == 2); ensure(a(0, 2) == 3);
+			ensure(a(1, 0) == 7); ensure(a(1, 1) == 11); ensure(a(1, 2) == 15);
+		}
+		{
+			X _i[] = { 1, 2, 3, 1 };
+			const matrix<X, CblasNoTrans, CblasUpper> i(2, 2, _i); // [1 2; 3 1]
+			X _a[6];
+			matrix<X> a(3, 2, _a);
+			std::iota(a.begin(), a.end(), X(1));
+
+			// [1 2    [1 2
+			//  3 4  *  . 1]
+			//  5 6]
+			// = [1, 2 + 2
+			//    3, 6 + 4
+			//    5, 10 + 6]
+			trmm<X>(a, i);
+			ensure(a.rows() == 3);
+			ensure(a.columns() == 2);
+			ensure(a(0, 0) == 1);
+			ensure(a(0, 1) == 4);
+			ensure(a(1, 0) == 3);
+			ensure(a(1, 1) == 10);
+			ensure(a(2, 0) == 5);
+			ensure(a(2, 1) == 16);
+		}
+		{
+			X _i[] = { 1, 2, 3, 1 };
+			const matrix<X, CblasNoTrans, CblasLower> i(2, 2, _i); // [1 2; 3 1]
+			X _a[6];
+			matrix<X> a(3, 2, _a);
+			std::iota(a.begin(), a.end(), X(1));
+
+			// [1 2    [1 .
+			//  3 4  *  3 1]
+			//  5 6]
+			// = [1 + 6,  2
+			//    3 + 12, 4
+			//    5 + 18, 6]
+			trmm<X>(a, i);
+			ensure(a.rows() == 3);
+			ensure(a.columns() == 2);
+			ensure(a(0, 0) == 7);
+			ensure(a(0, 1) == 2);
+			ensure(a(1, 0) == 15);
+			ensure(a(1, 1) == 4);
+			ensure(a(2, 0) == 23);
+			ensure(a(2, 1) == 6);
+		}
+
+		return 0;
+	}
+
+#endif // _DEBUG
+} // namespace blas
+
+#if 0
 
 	// right multiply by diagonal matrix
 	template<class X>
@@ -591,170 +705,10 @@ namespace blas {
 		return a;
 	}
 
-	template<class X>
-	using upper = matrix<X>::upper;
-
-		{
-			X _i[] = { 1, 2, 3, 1 };
-			X _a[6];
-			const matrix<X> i(2, 2, _i); // [1 2; 3 1]
-			matrix<X> a(2, 3, _a);
-
-			// [1 2  * [1 2 3
-			//  . 1] *  4 5 6]
-			// = [1 + 8, 2 + 10, 3 + 12
-			//    4      5       6]
-			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm<X>(matrix<X>::upper(i), a);
-			ensure(a.rows() == 2);
-			ensure(a.columns() == 3);
-			ensure(a(0, 0) == 9);
-			ensure(a(0, 1) == 12);
-			ensure(a(0, 2) == 15);
-			ensure(a(1, 0) == 4);
-			ensure(a(1, 1) == 5);
-			ensure(a(1, 2) == 6);
-
-			// [1 .  * [1 2 3
-			//  3 1] *  4 5 6]
-			// = [1      2      3
-			//    3 + 4, 6 + 5, 9 + 6]
-			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm<X>(matrix<X>::lower(i), a);
-			ensure(a.rows() == 2);
-			ensure(a.columns() == 3); 
-			ensure(a(0, 0) == 1); ensure(a(0, 1) == 2); ensure(a(0, 2) == 3);
-			ensure(a(1, 0) == 7); ensure(a(1, 1) == 11); ensure(a(1, 2) == 15);
-
-			// [1 2    [1 2
-			//  3 4  *  . 1]
-			//  5 6]
-			// = [1, 2 + 2
-			//    3, 6 + 4
-			//    5, 10 + 6]
-			a = matrix<X>(3, 2, _a);
-			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm<X>(a, matrix<X>::upper(i));
-			ensure(a.rows() == 3);
-			ensure(a.columns() == 2);
-			ensure(a(0, 0) == 1);
-			ensure(a(0, 1) == 4);
-			ensure(a(1, 0) == 3);
-			ensure(a(1, 1) == 10);
-			ensure(a(2, 0) == 5);
-			ensure(a(2, 1) == 16);
-
-			// [1 2    [1 .
-			//  3 4  *  3 1]
-			//  5 6]
-			// = [1 + 6,  2
-			//    3 + 12, 4
-			//    5 + 18, 6]
-			a = matrix<X>(3, 2, _a);
-			a.assign({ 1, 2, 3, 4, 5, 6 });
-			trmm<X>(a, matrix<X>::lower(i));
-			ensure(a.rows() == 3);
-			ensure(a.columns() == 2);
-			ensure(a(0, 0) == 7);
-			ensure(a(0, 1) == 2);
-			ensure(a(1, 0) == 15);
-			ensure(a(1, 1) == 4);
-			ensure(a(2, 0) == 23);
-			ensure(a(2, 1) == 6);
-		}
-
-		return 0;
-	}
 
 
 
 
-
-// !!! move to fms_lapack.h
-namespace lapack {
-
-	// a = u'u if upper, a = ll' if lower
-	template<class X>
-	inline int potrf(blas::matrix<X>& a)
-	{
-		ensure(a.rows() == a.columns());
-		
-		int ret = INT_MAX;
-		CBLAS_UPLO ul = a.uplo();
-		ensure(ul);
-
-		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
-		}
-		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
-		}
-
-		return ret;
-	}
-
-	template<class X>
-	inline int potri(blas::matrix<X>& a)
-	{
-		ensure(a.rows() == a.columns());
-
-		int ret = INT_MAX;
-		CBLAS_UPLO ul = a.uplo();
-		ensure(ul);
-
-		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
-		}
-		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, ul == CblasUpper ? 'U' : 'L', a.rows(), a.data(), a.ld());
-		}
-
-		return ret;
-	}
-
-#ifdef _DEBUG
-	template<class X>
-	inline int potrf_test()
-	{
-		{
-			X _m[4];
-			X _a[4];
-			blas::matrix<X> m(2, 2, _m);
-			blas::matrix<X> a(2, 2, _a);
-
-			m.assign({ 1, 2, 0, 1 });
-			a = blas::gemm(blas::matrix<X>::transpose(m), m, a.data()); // [1 2; 2 5]
-			potrf<X>(a.upper());
-			ensure(a.equal(m.upper()));
-
-			m.assign({ 1, 0, 3, 1 });
-			a = blas::gemm(m, blas::matrix<X>::transpose(m), a.data()); // [1 3; 3 10]
-			potrf<X>(a.lower());
-			ensure(a.equal(m.lower()));
-		}
-		{
-			X _a[4];
-			X _b[4];
-
-			blas::matrix<X> a(2, 2, _a);
-			blas::matrix<X> b(2, 2, _b);
-			a.assign({ X(1), X(2), X(2), X(5) });
-			b.assign(a);
-
-			potrf<X>(b.upper());
-			potri<X>(b);
-
-			X _c[4];
-			blas::matrix<X> c(2, 2, _c);
-			c = blas::gemm(a, b, c.data());
-			ensure(c(0, 0) == 1);
-		}
-
-		return 0;
-	}
-#endif // _DEBUG
-
-} // namespace lapack
 
 template<class X>
 class triangular_matrix : public matrix<X> {
