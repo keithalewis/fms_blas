@@ -675,19 +675,19 @@ namespace blas {
 
 #endif // _DEBUG
 
-	// scale rows/cols of a by d
+	// scale rows/cols of a by v
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
-	inline matrix<X,TRANS,UPLO>& scal(const vector<X>& d, matrix<X,TRANS,UPLO>& a)
+	inline matrix<X,TRANS,UPLO>& scal(const vector<X>& v, matrix<X,TRANS,UPLO>& a)
 	{
-		for (std::size_t i = 0; i < d.size(); ++i) {
+		for (std::size_t i = 0; i < v.size(); ++i) {
 			std::size_t jlo = (UPLO == CblasNoUplo) ? 0 : i;
 			std::size_t jhi = (UPLO == CblasNoUplo) ? a.ld() : i;
 			for (std::size_t j = jlo; j < jhi; ++j) {
 				if constexpr (TRANS == CblasNoTrans) {
-					a(i, j) *= d[i];
+					a(i, j) *= v[i];
 				}
 				else {
-					a(j, i) *= d[i];
+					a(j, i) *= v[i];
 				}
 			}
 		}
