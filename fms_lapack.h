@@ -5,20 +5,20 @@
 
 namespace lapack {
 
-	// BLAS to LAPACK conversion
+	// CBLAS to LAPACK conversion
 	template<CBLAS_TRANSPOSE T>
-	struct blas_trans { char trans;  };
+	struct cblas_trans { char trans;  };
 	template<>
-	struct blas_trans<CblasTrans> { char trans = 'T'; };
+	struct cblas_trans<CblasTrans> { char trans = 'T'; };
 	template<>
-	struct blas_trans<CblasNoTrans> { char trans = 'N'; };
+	struct cblas_trans<CblasNoTrans> { char trans = 'N'; };
 
 	template<CBLAS_UPLO UL>
-	struct blas_uplo { char uplo; };
+	struct cblas_uplo { char uplo; };
 	template<>
-	struct blas_uplo<CblasUpper> { char uplo = 'U'; };
+	struct cblas_uplo<CblasUpper> { char uplo = 'U'; };
 	template<>
-	struct blas_uplo<CblasLower> { char uplo = 'L'; };
+	struct cblas_uplo<CblasLower> { char uplo = 'L'; };
 
 	// a = u'u if upper, a = ll' if lower
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>

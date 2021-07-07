@@ -711,18 +711,6 @@ namespace blas {
 				        X(2*4), X(2*5), X(2*6) };
 			ensure(a.equal(matrix<X>(2, 3, _b)));
 		}
-		{
-			X _a[6];
-			matrix<X,CblasTrans> a(3, 2, _a);
-			std::iota(a.begin(), a.end(), X(1));
-			// {1 4; 2 5; 3 6}
-
-			scal(vector(3, _v), a);
-			X _b[6] = { X(1), X(4),
-				        X(2*2), X(2*5), 
-				        X(3*3), X(3*6) };
-			//ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
-		}
 
 		return 0;
 	}
