@@ -798,6 +798,7 @@ namespace blas {
 	//
 	// BLAS level 3
 	// 
+	 
 	// general matrix multiplication with preallocated memory in _c
 	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB>
 	inline matrix<X> gemm(const matrix<X,TA, CblasNoUplo>& a, const matrix<X,TB, CblasNoUplo>& b, X* _c, X alpha = 1, X beta = 0)
@@ -983,18 +984,6 @@ namespace blas {
 
 #endif // _DEBUG
 
-	
-			scal(vector(3, _v), a);
-			X _b[6] = { X(1), X(4),
-				        X(2*2), X(2*5), 
-				        X(3*3), X(3*6) };
-			//ensure(a.equal(matrix<X,CblasTrans>(3, 2, _b)));
-		}
-
-		return 0;
-	}
-
-#endif // _DEBUG
 	
 	/*
 	// right multiply by diagonal matrix
