@@ -29,21 +29,21 @@ namespace blas {
 	}
 #pragma warning(pop)
 
-	// non-owning contiguous array of X
+	// non-owning strided array of X
 	template<typename X>
 	class vector {
 	protected:
-		std::size_t n;
+		int n, dn;
 		X* v;
 	public:
 		using type = typename X;
 
-		vector(std::size_t n = 0, X* v = nullptr)
-			: n(n), v(v)
+		vector(int n = 0, X* v = nullptr, int dn = 1)
+			: n(n), v(v), dn(dn)
 		{ }
 		template<size_t N>
 		vector(X(&v)[N])
-			: n(N), v(v)
+			: n(static_cast<int>(N)), v(v), dn(1)
 		{ }
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
@@ -57,9 +57,13 @@ namespace blas {
 		// size and pointer equality
 		auto operator<=>(const vector&) const = default;
 
-		std::size_t size() const
+		int size() const
 		{
 			return n;
+		}
+		int incr() const
+		{
+			return dn;
 		}
 		X* data()
 		{
@@ -70,13 +74,13 @@ namespace blas {
 			return v;
 		}
 		// cyclic index
-		X operator[](std::size_t i) const
+		X operator[](int i) const
 		{
-			return v[i % n];
+			return v[xmod(i * dn, n * dn)];
 		}
-		X& operator[](std::size_t i)
+		X& operator[](int i)
 		{
-			return v[i % n];
+			return v[xmod(i * dn, n * dn)];
 		}
 
 		X* begin()
@@ -89,27 +93,66 @@ namespace blas {
 		}
 		X* end()
 		{
-			return v + n;
+			return v + n * abs(dn);
 		}
 		const X* end() const
 		{
-			return v + n;
+			return v + n * abs(dn);
 		}
 
-		// unsafe assignment from iterator
-		template<class I>
-		vector& copy(const I& i)
+		vector& copy(const vector& w)
 		{
-			std::copy(i.begin(), i.end(), begin()/*, end()*/);
+			if constexpr (std::is_same_v<X,float>)
+				cblas_scopy(n, v, dn, w.data(), w.incr());
+			if constexpr (std::is_same_v<X, double>)
+				cblas_dcopy(n, v, dn, w.data(), w.incr());
+		}
+		template<class I>
+		vector& copy(const X* pv)
+		{
+			return copy(vector<X>(n, pv, 1));
+		}
+
+		bool equal(const vector& w) const
+		{
+			int i = 0;
+
+			while (i < n and i < w.size()) {
+				if (operator[](i) != w[i])
+					return false;
+				++i;
+			}
+
+			return i == w.size();
+		}
+
+		vector& take(int i)
+		{
+			i = std::clamp(i, -n, n);
+
+			if (i >= 0) {
+				n = i;
+			}
+			else {
+				n = -i;
+				v += n + i * abs(dn);
+			}
 
 			return *this;
 		}
-
-		// unsafe content equality
-		template<class I>
-		bool equal(const I& i) const
+		vector& drop(int i)
 		{
-			return std::equal(i.begin(), i.end(), begin()/*, end()*/);
+			i = std::clamp(i, -n, n);
+
+			if (i > 0) {
+				n -= i;
+				v += i * abs(dn);
+			}
+			else if (i < 0) {
+				n += i;
+			}
+
+			return *this;
 		}
 
 #ifdef _DEBUG
@@ -133,7 +176,7 @@ namespace blas {
 			}
 			{
 				X _v[3];
-				blas::vector<X> v(_v);
+				vector<X> v(_v);
 				std::iota(v.begin(), v.end(), X(1));
 				ensure(v);
 				ensure(v.size() == 3);
@@ -144,7 +187,7 @@ namespace blas {
 				ensure(_v[1] == 2);
 
 				// blas::vector<X> v2(&_v[0]);
-				blas::vector<X> v2(3, &_v[0]);
+				vector<X> v2(3, &_v[0]);
 				ensure(v2.equal(v));
 
 				v[1] = X(4);
@@ -152,6 +195,21 @@ namespace blas {
 				_v[1] = X(5);
 				ensure(v[1] == X(5));
 				ensure(v[v.size() + 1] == v[1]);
+
+				vector<X> w(v);
+				ensure(v == w);
+			}
+			{
+				X _v[] = { 1,2,3 };
+				vector<X> v(_v);
+				v.take(2); // {1, 2}
+				ensure(v.size() == 2);
+				ensure(v[0] == 1);
+				v.drop(-1); // {1}
+				ensure(v.size() == 1);
+				ensure(v[0] = 1);
+				v.drop(10);
+				ensure(v.size() == 0);
 			}
 
 			return 0;
@@ -159,12 +217,23 @@ namespace blas {
 #endif // _DEBUG
 	};
 
+	template<class X>
+	inline vector<X> take(int i, vector<X> v)
+	{
+		return v.take(i);
+	}
+	template<class X>
+	inline vector<X> drop(int i, vector<X> v)
+	{
+		return v.drop(i);
+	}
+
 	template<class X, class I>
 	class indirect_vector {
 		// operator[](I::type j) { return v[i[j]]; }
 	};
 
-	template<class I = std::size_t>
+	template<class I = int>
 	class slice {
 		I start, size, stride;
 	public:
@@ -223,17 +292,6 @@ namespace blas {
 		template<class X>
 		static int test()
 		{
-			{
-				X _v1[3];
-				X _v2[3];
-
-				auto v1 = vector<X>(_v1);
-				vector<X> v2(_v2);
-
-				std::iota(v1.begin(), v1.end(), X(1));
-				v2.copy(slice<X>(1, 3));
-				ensure(v1.equal(v2));
-			}
 
 			return 0;
 		}
@@ -247,12 +305,12 @@ namespace blas {
 	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUplo>
 	class matrix {
 	protected:
-		std::size_t r, c;
+		int r, c;
 		X* a;
 	public:
 		using type = X;
 
-		matrix(std::size_t r = 0, std::size_t c = 0, X* a = nullptr)
+		matrix(int r = 0, int c = 0, X* a = nullptr)
 			: r(r), c(c), a(a)
 		{ }
 		matrix(const matrix&) = default;
@@ -277,10 +335,10 @@ namespace blas {
 			if (r != m.r or c != m.c)
 				return false;
 
-			for (std::size_t i = 0; i < r; ++i) {
-				std::size_t jlo = (UPLO == CblasUpper) ? i : 0;
-				std::size_t jhi = (UPLO == CblasLower) ? i : c;
-				for (std::size_t j = jlo; j < jhi; ++j) {
+			for (int i = 0; i < r; ++i) {
+				int jlo = (UPLO == CblasUpper) ? i : 0;
+				int jhi = (UPLO == CblasLower) ? i : c;
+				for (int j = jlo; j < jhi; ++j) {
 					if (operator()(i, j) != m(i, j))
 						return false;
 				}
@@ -289,22 +347,22 @@ namespace blas {
 			return true;
 		}
 
-		std::size_t index(std::size_t i, std::size_t j) const
+		int index(int i, int j) const
 		{
 			return TRANS == CblasNoTrans ? i * c + j : i + j * r;
 		}
 
-		X operator()(std::size_t i, std::size_t j) const
+		X operator()(int i, int j) const
 		{
 			return a[index(i, j)];
 		}
-		X& operator()(std::size_t i, std::size_t j)
+		X& operator()(int i, int j)
 		{
 			return a[index(i, j)];
 		}
 
 		// unsafe linear copy
-		matrix& copy(std::size_t n, const X* pa)
+		matrix& copy(int n, const X* pa)
 		{
 			std::copy(pa, pa + n, a);
 
@@ -322,10 +380,10 @@ namespace blas {
 		{
 			ensure(r*c <= m.size());
 
-			for (std::size_t i = 0; i < r; ++i) {
-				std::size_t jlo = (UPLO == CblasUpper) ? i : 0;
-				std::size_t jhi = (UPLO == CblasLower) ? i : c;
-				for (std::size_t j = jlo; j < jhi; ++j) {
+			for (int i = 0; i < r; ++i) {
+				int jlo = (UPLO == CblasUpper) ? i : 0;
+				int jhi = (UPLO == CblasLower) ? i : c;
+				for (int j = jlo; j < jhi; ++j) {
 					operator()(i, j) = m(i, j);
 				}
 			}
@@ -386,6 +444,41 @@ namespace blas {
 			return matrix<X, TRANS, UPLO>(r, c, a);
 		}
 
+		vector<X> _row(int i) const
+		{
+			return vector<X>(c, a + i * c, 1);
+		}
+		vector<X> _column(int j) const
+		{
+			return vector<X>(r, a + j, c);
+		}
+		vector<X> row(int i) const
+		{
+			i = xmod(i, r);
+
+			vector<X> vi = (TRANS == CblasNoTrans) ? _row(i) : transpose()._column(i);
+
+			if constexpr (UPLO == CblasUpper)
+				vi.drop(i);
+			else if constexpr (UPLO == CblasLower)
+				vi.drop(-i);
+
+			return vi;
+		}
+		vector<X> column(int j) const
+		{
+			j = xmod(j, c);
+
+			vector<X> vj = (TRANS == CblasNoTrans) ? _column(j) : transpose()._row(j);
+
+			if constexpr (UPLO == CblasUpper)
+				vj.drop(j);
+			else if constexpr (UPLO == CblasLower)
+				vj.drop(-j);
+
+			return vj;
+		}
+
 #ifdef _DEBUG
 
 		static int test()
@@ -422,10 +515,10 @@ namespace blas {
 				ensure(!(a != a2));
 			}
 
-			X _a[6], _b[6]; // backing store
 			auto _a0 = std::initializer_list<X>({ 1, 2, 3, 4, 5, 6 });
+			X _a[6], _b[6]; // backing store
 			X constexpr NaN = std::numeric_limits<X>::quiet_NaN();
-			
+
 			{
 				auto a = matrix<X>(2, 3, _a).copy(_a0);
 				auto a2{ a };
@@ -466,8 +559,8 @@ namespace blas {
 				auto a = matrix<X, CblasNoTrans, CblasUpper>(2, 3, _a).copy(_a0);
 				auto b = matrix<X, CblasNoTrans, CblasUpper>(2, 3, _b).copy(_a0);
 				ensure(a.equal(b));
-				for (size_t i = 1; i < b.rows(); ++i)
-					for (size_t j = 0; j < i; ++j)
+				for (int i = 1; i < b.rows(); ++i)
+					for (int j = 0; j < i; ++j)
 						b(i, j) = NaN;
 				ensure(a.equal(b));
 			}
@@ -475,8 +568,8 @@ namespace blas {
 				auto a = matrix<X>(2, 3, _a).uplo<CblasUpper>().copy(_a0);
 				auto b = matrix<X, CblasNoTrans, CblasUpper>(2, 3, _b).copy(_a0);
 				ensure(a.equal(b));
-				for (size_t i = 1; i < b.rows(); ++i)
-					for (size_t j = 0; j < i; ++j)
+				for (int i = 1; i < b.rows(); ++i)
+					for (int j = 0; j < i; ++j)
 						b(i, j) = NaN;
 				ensure(a.equal(b));
 			}
@@ -484,8 +577,8 @@ namespace blas {
 				auto a = matrix<X, CblasTrans, CblasUpper>(3, 2, _a).copy(_a0);
 				auto b = matrix<X, CblasTrans, CblasUpper>(3, 2, _b).copy(_a0);
 				ensure(a.equal(b));
-				for (size_t i = 1; i < b.rows(); ++i)
-					for (size_t j = 0; j < i; ++j)
+				for (int i = 1; i < b.rows(); ++i)
+					for (int j = 0; j < i; ++j)
 						b(i, j) = NaN;
 				ensure(a.equal(b));
 			}
@@ -494,8 +587,8 @@ namespace blas {
 				auto a = matrix<X, CblasNoTrans, CblasLower>(2, 3, _a).copy(_a0);
 				auto b = matrix<X, CblasNoTrans, CblasLower>(2, 3, _b).copy(_a0);
 				ensure(a.equal(b));
-				for (size_t i = 1; i < b.rows(); ++i)
-					for (size_t j = i + 1; j < b.columns(); ++j)
+				for (int i = 1; i < b.rows(); ++i)
+					for (int j = i + 1; j < b.columns(); ++j)
 						b(i, j) = NaN;
 				ensure(a.equal(b));
 			}
@@ -503,10 +596,45 @@ namespace blas {
 				auto a = matrix<X, CblasTrans, CblasLower>(3, 2, _a).copy(_a0);
 				auto b = matrix<X, CblasTrans, CblasLower>(3, 2, _b).copy(_a0);
 				ensure(a.equal(b));
-				for (size_t i = 1; i < b.rows(); ++i)
-					for (size_t j = i + 1; j < b.columns(); ++j)
+				for (int i = 1; i < b.rows(); ++i)
+					for (int j = i + 1; j < b.columns(); ++j)
 						b(i, j) = NaN;
 				ensure(a.equal(b));
+			}
+			// row/column
+			{
+				auto a = matrix<X>(2, 3, _a).copy(_a0);
+				X _r1[] = { 4, 5, 6 };
+				auto r1 = a._row(1);
+				ensure(r1.equal(vector<X>(_r1)));
+
+				X _c1[] = { 2, 5 };
+				auto c1 = a._column(1);
+				ensure(c1.equal(vector<X>(_c1)));
+			}
+			{
+				auto a = matrix<X>(2, 3, _a).copy(_a0);
+				X _r1[] = { 4, 5, 6 };
+				auto r1 = a.row(1);
+				ensure(r1.equal(vector<X>(_r1)));
+				ensure(a.uplo<CblasUpper>().row(1).equal(vector<X>(_r1).drop(1)));
+
+				X _c1[] = { 2, 5 };
+				auto c1 = a.column(1);
+				ensure(c1.equal(vector<X>(_c1)));
+				ensure(a.uplo<CblasLower>().column(1).equal(vector<X>(_c1).drop(-1)));
+
+				ensure(a.transpose().row(1).equal(vector<X>(_c1)));
+				ensure(a.transpose().column(1).equal(vector<X>(_r1)));
+			}
+			{
+				auto a = matrix<X>(2, 3, _a).copy(_a0);
+				X _r1[] = { 4, 5, 6 };
+				auto r1 = a._row(1);
+				ensure(r1.equal(vector<X>(_r1)));
+				X _c1[] = { 2, 5 };
+				auto c1 = a._column(1);
+				ensure(c1.equal(vector<X>(_c1)));
 			}
 
 			return 0;
@@ -525,7 +653,7 @@ namespace blas {
 			: matrix<X,TRANS,UPLO>(N, N)
 		{
 			matrix<X, TRANS, UPLO>::a = id;
-			for (std::size_t i = 0; i < N; ++i)
+			for (int i = 0; i < N; ++i)
 				matrix<X,TRANS,UPLO>::operator()(i, i) = 1;
 		}
 
@@ -536,8 +664,8 @@ namespace blas {
 				identity_matrix<3,X> id;
 				ensure(id.rows() == 3);
 				ensure(id.columns() == 3);
-				for (std::size_t i = 0; i < 3; ++i) {
-					for (std::size_t j = 0; j < 3; ++j) {
+				for (int i = 0; i < 3; ++i) {
+					for (int j = 0; j < 3; ++j) {
 						ensure(id(i, j) == X(i == j));
 					}
 				}
@@ -552,15 +680,45 @@ namespace blas {
 	// BLAS level 1
 	//
 	
-	// v = a v
+	// sum_i |v_|
 	template<class X>
-	inline vector<X>& scal(X a, vector<X>& v, int stride = 1)
+	inline X asum(const vector<X>& v)
 	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
 		if constexpr (std::is_same_v <X, float>) {
-			blas_sscal(v.size(), a, v.data(), stride);
+			s = cblas_sasum(v.size(), v.data(), v.incr());
 		}
 		if constexpr (std::is_same_v <X, double>) {
-			blas_dscal(v.size(), a, v.data(), stride);
+			s = cblas_dasum(v.size(), v.data(), v.incr());
+		}
+
+		return s;
+	}
+	// v . w
+	template<class X>
+	inline X dot(const vector<X>& v, const vector<X>& w)
+	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
+		if constexpr (std::is_same_v <X, float>) {
+			s = cblas_sdot(v.size(), v.data(), v.incr(), w.data(), w.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			s = cblas_ddot(v.size(), v.data(), v.incr(), w.data(), w.incr());
+		}
+
+		return s;
+	}
+	// v = a v
+	template<class X>
+	inline vector<X>& scal(X a, vector<X>& v)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sscal(v.size(), a, v.data(), v.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dscal(v.size(), a, v.data(), v.incr());
 		}
 
 		return v;
@@ -574,12 +732,12 @@ namespace blas {
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
 	inline matrix<X, TRANS, UPLO>& scal(const vector<X>& v, matrix<X, TRANS, UPLO>& m)
 	{
-		for (std::size_t i = 0; i < v.size(); ++i) {
-			//std::size_t jlo = (UPLO == CblasNoUplo) ? 0 : i;
-			//std::size_t jhi = (UPLO == CblasNoUplo) ? m.ld() : i;
-			int stride = (TRANS == CblasNoTrans) ? 1 : m.rows();
-			vector vi(m.ld(), m.data() + i * m.ld());
-			scal(v[i], vi, stride);
+		for (int i = 0; i < v.size(); ++i) {
+			vector<X> vi = m.row(i); // row or column i
+
+			if (v[i] != X(1) and vi.size() > 0) {
+				scal<X>(v[i], vi);
+			}
 		}
 
 		return m;
@@ -596,10 +754,9 @@ namespace blas {
 			matrix<X> a(2, 3, _a);
 			std::iota(a.begin(), a.end(), X(1));
 
-			scal(vector(2, _v), a); // rows
-			X _b[6] = { X(1), X(2), X(3),
-						X(2 * 4), X(2 * 5), X(2 * 6) };
-			ensure(a.equal(matrix<X>(2, 3, _b)));
+			scal<X>(vector<X>(2, _v), a); // rows
+			ensure(a(0, 0) == 1);   ensure(a(0, 1) == 2);   ensure(a(0, 2) == 3);
+			ensure(a(1, 0) == 2*4); ensure(a(1, 1) == 2*5); ensure(a(1, 2) == 2*6);
 		}
 		{
 			X _a[6];
@@ -607,14 +764,30 @@ namespace blas {
 			std::iota(a.begin(), a.end(), X(1));
 			// {1 4; 2 5; 3 6}
 
-			scal(vector(3, _v), a); // columns
-			// {1 4; 2*2 2*5; 3*3 3*6}
-			X _b[6] = { X(1), X(4),
-						X(2 * 2), X(2 * 5),
-						X(3 * 3), X(3 * 6) };
-			//matrix<X> b(2, 3, _b); // {1 4; 4 10; 9 18}
-			//ensure(a.equal(vector(_b)));
+			scal<X>(vector<X>(3, _v), a); // columns
+			ensure(a(0, 0) == 1);   ensure(a(0, 1) == 4);
+			ensure(a(1, 0) == 2*2); ensure(a(1, 1) == 2*5);
+			ensure(a(2, 0) == 3*3); ensure(a(2, 1) == 3*6);
+		}
+		{
+			X _a[6];
+			auto a = matrix<X>(2, 3, _a).uplo<CblasUpper>();
+			std::iota(a.begin(), a.end(), X(1));
 
+			scal<X>(vector<X>(2, _v), a); // rows
+			ensure(a(0, 0) == 1); ensure(a(0, 1) == 2);     ensure(a(0, 2) == 3);
+			ensure(a(1, 0) == 4); ensure(a(1, 1) == 2 * 5); ensure(a(1, 2) == 2 * 6);
+		}
+		{
+			X _a[6];
+			auto a = matrix<X>(2, 3, _a).transpose().uplo<CblasUpper>();
+			std::iota(a.begin(), a.end(), X(1));
+			// {1 4; 2 5; 3 6}
+
+			scal<X>(vector<X>(3, _v), a); // columns
+			ensure(a(0, 0) == 1); ensure(a(0, 1) == 4);
+			ensure(a(1, 0) == 1 * 2); ensure(a(1, 1) == 2 * 5);
+			ensure(a(2, 0) == 3); ensure(a(2, 1) == 6);
 		}
 
 		return 0;
@@ -817,7 +990,7 @@ namespace blas {
 	inline matrix<X>& diag(matrix<X>& a, const vector<X>& d)
 	{
 		// row vector times scalar
-		for (std::size_t i = 0; i < d.size(); ++i) {
+		for (int i = 0; i < d.size(); ++i) {
 			if constexpr (std::is_same_v<X, double>) {
 				blas_dscal(d.size(), d[i], a.data() + i * a.ld(), 1);
 			}
@@ -830,7 +1003,7 @@ namespace blas {
 	inline matrix<X>& diag(const vector<X>& d, matrix<X>& a)
 	{
 		// columns vector times scalar
-		for (std::size_t i = 0; i < d.size(); ++i) {
+		for (int i = 0; i < d.size(); ++i) {
 			if constexpr (std::is_same_v<X, double>) {
 				blas_dscal(d.size(), d[i], a.data() + i, a.ld());
 			}
@@ -842,111 +1015,3 @@ namespace blas {
 
 } // namespace blas
 
-#if 0
-
-
-
-
-
-
-
-template<class X>
-class triangular_matrix : public matrix<X> {
-public:
-	using matrix<X>::c;
-	using matrix<X>::columns;
-	using matrix<X>::trans;
-	using matrix<X>::uplo;
-
-	triangular_matrix(int n, X* a, bool lower = false)
-		: matrix<X>(n, lower ? -n : n, a)
-	{ }
-
-	int index(int i, int j) const override
-	{
-		int c_ = c;
-
-		if (trans() == CblasTrans) {
-			std::swap(i, j);
-			c_ = -c; // up <-> lo
-		}
-
-		if (c_ > 0 and i <= j) // upper
-			return i + ((2 * columns() - j) * (j + 1)) / 2;
-		else if (c_ < 0 and i >= j) // lower
-			return i + (j * (j + 1)) / 2;
-
-		return -1;
-	}
-
-#ifdef _DEBUG
-	static int test()
-	{
-		{
-			X _a[] = { 1,2,3 };
-			triangular_matrix<X> t(2, _a);
-			ensure(t.rows() == 2);
-			ensure(t.columns() == 2);
-			ensure(t.trans() == CblasNoTrans);
-			ensure(t.uplo() == CblasUpper);
-		}
-
-		return 0;
-	}
-#endif // _DEBUG
-};
-
-template<class X>
-struct identity_matrix : public matrix<X> {
-	static X _a[2] = { 0, 1 };
-
-	identity_matrix(int n)
-		: matrix<X>(n, n, _a)
-	{ }
-
-	int index_(int i, int j) const override
-	{
-		return i == j;
-	}
-};
-
-template<class X>
-inline bool upper(const matrix<const X>& a, bool strict = false)
-{
-	for (int i = 0; i < a.rows(); ++i)
-		for (int j = 0; j + strict < i; ++j)
-			if (a(i, j) != 0)
-				return false;
-
-	return true;
-}
-template<class X>
-inline bool lower(const matrix<const X>& a, bool strict = false)
-{
-	for (int i = 0; i < a.rows(); ++i)
-		for (int j = i + strict; j < a.columns(); ++j)
-			if (a(i, j) != 0)
-				return false;
-
-	return true;
-}
-template<class X>
-inline bool unit(const matrix<const X>& a)
-{
-	for (int i = 0; i < a.rows() and i < a.columns(); ++i)
-		if (a(i, i) != 1)
-			return false;
-
-	return true;
-}
-template<class X>
-inline bool symmetric(const matrix<const X>& a)
-{
-	for (int i = 0; i < a.rows(); ++i)
-		for (int j = 0; j < i; ++j)
-			if (a(i, j) != a(j, i))
-				return false;
-
-	return true;
-}
-#endif // 0
