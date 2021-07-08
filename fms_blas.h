@@ -1,4 +1,9 @@
 // fms_blas.h - BLAS wrappers
+/*
+* Use SCARY blas::matrix class
+* matrix_transpose<CBLAS_TRANSPOSE>
+* matrix_uplo<CBLAS_UPLO>
+*/
 #pragma once
 //#pragma warning(push)
 #pragma warning(disable: 4820)
@@ -107,12 +112,20 @@ namespace blas {
 			if constexpr (std::is_same_v<X, double>)
 				cblas_dcopy(n, v, dn, w.data(), w.incr());
 		}
-		template<class I>
 		vector& copy(const X* pv)
 		{
 			return copy(vector<X>(n, pv, 1));
 		}
+		vector& fill(X x)
+		{
+			for (int i = 0; i < n; ++i) {
+				operator[](i) = x;
+			}
 
+			return *this;
+		}
+
+		// equal contents
 		bool equal(const vector& w) const
 		{
 			int i = 0;
@@ -299,6 +312,7 @@ namespace blas {
 #endif // _DEBUG
 	};
 
+	// phony uplo
 	static constexpr CBLAS_UPLO CblasNoUplo = static_cast<CBLAS_UPLO>(0);
 
 	// non owning matrix
@@ -308,7 +322,8 @@ namespace blas {
 		int r, c;
 		X* a;
 	public:
-		using type = X;
+		using type = matrix<X, TRANS, UPLO>;
+		using value_type = X;
 
 		matrix(int r = 0, int c = 0, X* a = nullptr)
 			: r(r), c(c), a(a)
@@ -432,6 +447,17 @@ namespace blas {
 		const X* end() const
 		{
 			return a + r * c;
+		}
+		matrix& resize(int _r, int _c, X* _a = nullptr)
+		{
+			if (_a != nullptr)
+				a = _a;
+			else
+				ensure(size() == _r * _c);
+			r = _r;
+			c = _c;
+
+			return *this;
 		}
 
 		auto transpose() const
@@ -679,49 +705,135 @@ namespace blas {
 	//
 	// BLAS level 1
 	//
-	
-	// sum_i |v_|
+
+	// arg max |x_i|
 	template<class X>
-	inline X asum(const vector<X>& v)
+	inline X amax(const vector<X>& x)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samax(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damax(x.size(), x.data(), x.incr());
+		}
+
+		return i;
+	}
+
+	// arg min |x_i|
+	template<class X>
+	inline X amin(const vector<X>& x)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samin(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damin(x.size(), x.data(), x.incr());
+		}
+
+		return i;
+	}
+
+	// sum_i |x_i|
+	template<class X>
+	inline X asum(const vector<X>& x)
 	{
 		X s = std::numeric_limits<X>::quiet_NaN();
 
 		if constexpr (std::is_same_v <X, float>) {
-			s = cblas_sasum(v.size(), v.data(), v.incr());
+			s = cblas_sasum(x.size(), x.data(), x.incr());
 		}
 		if constexpr (std::is_same_v <X, double>) {
-			s = cblas_dasum(v.size(), v.data(), v.incr());
+			s = cblas_dasum(x.size(), x.data(), x.incr());
 		}
 
 		return s;
 	}
-	// v . w
+
+	// y = a x + y
 	template<class X>
-	inline X dot(const vector<X>& v, const vector<X>& w)
+	inline vector<X> axpy(X a, const vector<X>& x, vector<X> y)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_daxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
+		}
+
+		return y;
+	}
+
+	// x . y
+	template<class X>
+	inline X dot(const vector<X>& x, const vector<X>& y)
 	{
 		X s = std::numeric_limits<X>::quiet_NaN();
 
 		if constexpr (std::is_same_v <X, float>) {
-			s = cblas_sdot(v.size(), v.data(), v.incr(), w.data(), w.incr());
+			s = cblas_sdot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
 		if constexpr (std::is_same_v <X, double>) {
-			s = cblas_ddot(v.size(), v.data(), v.incr(), w.data(), w.incr());
+			s = cblas_ddot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
 
 		return s;
 	}
-	// v = a v
+
+	// sqrt (sum_i v_i^2)
 	template<class X>
-	inline vector<X>& scal(X a, vector<X>& v)
+	inline X nrm2(const vector<X>& x)
 	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
 		if constexpr (std::is_same_v <X, float>) {
-			cblas_sscal(v.size(), a, v.data(), v.incr());
+			s = cblas_snrm2(x.size(), x.data(), x.incr());
 		}
 		if constexpr (std::is_same_v <X, double>) {
-			cblas_dscal(v.size(), a, v.data(), v.incr());
+			s = cblas_dnrm2(x.size(), x.data(), x.incr());
 		}
 
-		return v;
+		return s;
+	}
+
+	template<class X>
+	inline void rot(vector<X> x, vector<X> y, X c, X s)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_srot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
+		}
+	}
+
+	template<class X>
+	inline void swap(vector<X> x, vector<X> y)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+	}
+
+	// x = a x
+	template<class X>
+	inline vector<X> scal(X a, vector<X> x)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sscal(x.size(), a, x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dscal(x.size(), a, x.data(), x.incr());
+		}
+
+		return x;
 	}
 
 	//
@@ -800,8 +912,9 @@ namespace blas {
 	// 
 	 
 	// general matrix multiplication with preallocated memory in _c
-	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB>
-	inline matrix<X> gemm(const matrix<X,TA, CblasNoUplo>& a, const matrix<X,TB, CblasNoUplo>& b, X* _c, X alpha = 1, X beta = 0)
+	// Does full multiplication and ignores uplo
+	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, CBLAS_UPLO ULA, CBLAS_UPLO ULB>
+	inline matrix<X> gemm(const matrix<X,TA, ULA>& a, const matrix<X,TB, ULB>& b, X* _c, X alpha = 1, X beta = 0)
 	{
 		matrix<X> c(a.rows(), b.columns(), _c);
 
