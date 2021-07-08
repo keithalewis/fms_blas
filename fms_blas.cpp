@@ -4,6 +4,7 @@
 template<class X>
 int fms_blas_test()
 {
+#ifdef _DEBUG
 	blas::vector<X>::test();
 	blas::slice<>::test<X>();
 	blas::matrix<X>::test();
@@ -13,6 +14,7 @@ int fms_blas_test()
 	blas::scal_test<X>();
 	lapack::potrf_test<X>();
 	lapack::potri_test<X>();
+#endif // _DEBUG
 
 	return 0;
 }
