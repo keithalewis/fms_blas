@@ -21,19 +21,18 @@ namespace lapack {
 	struct cblas_uplo<CblasLower> { static const char uplo = 'L'; };
 
 	// a = u'u if upper, a = ll' if lower
-	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
-	inline int potrf(blas::matrix<X, TRANS, UPLO>& a)
+	template<class X>
+	inline int potrf(blas::matrix<X>& a, CBLAS_UPLO uplo = CblasLower)
 	{
-		ensure(a.rows() == a.columns());
-		static_assert(UPLO != blas::CblasNoUplo);
-
 		int ret = INT_MAX;
 
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
 		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotrf(LAPACK_ROW_MAJOR, ul, a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul, a.rows(), a.data(), a.ld());
 		}
 
 		return ret;
@@ -76,19 +75,18 @@ namespace lapack {
 #endif // _DEBUG
 
 
-	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
-	inline int potri(blas::matrix<X,TRANS,UPLO>& a)
+	template<class X>
+	inline int potri(blas::matrix<X>& a, CBLAS_UPLO uplo = CblasLower)
 	{
-		ensure(a.rows() == a.columns());
-		static_assert(UPLO != blas::CblasNoUplo);
-
 		int ret = INT_MAX;
 
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
 		if constexpr (std::is_same_v<X, float>) {
-			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_spotri(LAPACK_ROW_MAJOR, ul, a.rows(), a.data(), a.ld());
 		}
 		if constexpr (std::is_same_v<X, double>) {
-			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, cblas_uplo<UPLO>::uplo, a.rows(), a.data(), a.ld());
+			ret = LAPACKE_dpotri(LAPACK_ROW_MAJOR, ul, a.rows(), a.data(), a.ld());
 		}
 
 		return ret;
@@ -108,9 +106,8 @@ namespace lapack {
 			a.copy(std::initializer_list<X>({ X(1), X(2), X(2), X(5) }));
 			b.copy(a);
 
-			auto bu = b.uplo<CblasUpper>();
-			potrf<X>(bu);
-			potri<X>(bu);
+			potrf<X>(b, CblasUpper);
+			potri<X>(b, CblasUpper);
 
 			/*
 			X _c[4];
