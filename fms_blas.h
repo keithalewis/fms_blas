@@ -107,10 +107,17 @@ namespace blas {
 			if constexpr (std::is_same_v<X, double>)
 				cblas_dcopy(n, v, dn, w.data(), w.incr());
 		}
-		template<class I>
 		vector& copy(const X* pv)
 		{
 			return copy(vector<X>(n, pv, 1));
+		}
+		vector& fill(X x)
+		{
+			for (int i = 0; i < n; ++i) {
+				operator[](i) = x;
+			}
+
+			return *this;
 		}
 
 		bool equal(const vector& w) const
@@ -679,8 +686,40 @@ namespace blas {
 	//
 	// BLAS level 1
 	//
-	
-	// sum_i |v_|
+
+	// arg max |v_i|
+	template<class X>
+	inline X amax(const vector<X>& v)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samax(v.size(), v.data(), v.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damax(v.size(), v.data(), v.incr());
+		}
+
+		return i;
+	}
+
+	// arg min |v_i|
+	template<class X>
+	inline X amin(const vector<X>& v)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samin(v.size(), v.data(), v.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damin(v.size(), v.data(), v.incr());
+		}
+
+		return i;
+	}
+
+	// sum_i |v_i|
 	template<class X>
 	inline X asum(const vector<X>& v)
 	{
@@ -695,6 +734,21 @@ namespace blas {
 
 		return s;
 	}
+
+	// w = a v + w
+	template<class X>
+	inline vector<X>& axpy(X a, const vector<X>& v, vector<X>& w)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_saxpy(v.size(), a, v.data(), v.incr(), w.data(), w.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_daxpy(v.size(), a, v.data(), v.incr(), w.data(), w.incr());
+		}
+
+		return w;
+	}
+
 	// v . w
 	template<class X>
 	inline X dot(const vector<X>& v, const vector<X>& w)
@@ -710,6 +764,45 @@ namespace blas {
 
 		return s;
 	}
+
+	// sqrt (sum_i v_i^2)
+	template<class X>
+	inline X nrm2(const vector<X>& v)
+	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
+		if constexpr (std::is_same_v <X, float>) {
+			s = cblas_snrm2(v.size(), v.data(), v.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			s = cblas_dnrm2(v.size(), v.data(), v.incr());
+		}
+
+		return s;
+	}
+
+	template<class X>
+	inline void rot(vector<X>& v, vector<X>& w, X c, X s)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_srot(v.size(), v.data(), v.incr(), w.data(), w.incr(), c, s);
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_drot(v.size(), v.data(), v.incr(), w.data(), w.incr(), c, s);
+		}
+	}
+
+	template<class X>
+	inline void swap(vector<X>& v, vector<X>& w)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sswap(v.size(), v.data(), v.incr(), w.data(), w.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dswap(v.size(), v.data(), v.incr(), w.data(), w.incr());
+		}
+	}
+
 	// v = a v
 	template<class X>
 	inline vector<X>& scal(X a, vector<X>& v)
