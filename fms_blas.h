@@ -17,6 +17,7 @@
 #include <iterator>
 #include <numeric>
 #include <type_traits>
+#include <valarray>
 #include "ensure.h"
 
 namespace blas {
@@ -34,7 +35,7 @@ namespace blas {
 	}
 #pragma warning(pop)
 
-	// non-owning strided array of X
+	// non-owning strided array view of X
 	template<typename X>
 	class vector {
 	protected:
@@ -52,7 +53,7 @@ namespace blas {
 		{ }
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
-		~vector()
+		virtual ~vector()
 		{ }
 
 		explicit operator bool() const
@@ -241,6 +242,207 @@ namespace blas {
 		return v.drop(i);
 	}
 
+	// vector backed by array
+	template<class X> 
+	class vector_array : public vector<X> {
+		std::valarray<X> _v;
+	public:
+		using vector<X>::size;
+		using vector<X>::incr;
+
+		vector_array(int n, int dn = 1)
+			: vector<X>(n, nullptr, dn), _v(n * abs(dn))
+		{ 
+			vector<X>::v = &_v[0];
+		}
+		vector_array(const vector_array& x)
+			: vector<X>(x.size(), nullptr, x.incr()), _v(x.size()*abs(x.incr()))
+		{
+			vector<X>::v = &_v[0];
+			_v = std::initializer_list<X>(x.begin(), x.end());			
+		}
+		vector_array& operator=(const vector_array& x)
+		{
+			if (this != &x) {
+				vector<X>::operator=(x);
+				_v.resize(size() * abs(incr()));
+				_v = std::initializer_list<X>(x.begin(), x.end());
+				vector<X>::v = &_v[0];
+			}
+
+			return *this;
+		}
+		~vector_array()
+		{ }
+
+#ifdef _DEBUG
+		static int test()
+		{
+			{
+				vector_array<X> v(3);
+				ensure(v);
+				ensure(v.size() == 3);
+				ensure(v.incr() == 1);
+				ensure(v.data());
+				for (auto vi : v) {
+					ensure(vi == X(0));
+				}
+
+				vector_array<X> v2{ v };
+				ensure(v2);
+				ensure(v2.size() == 3);
+				ensure(v2.incr() == 1);
+				ensure(v2.data());
+				ensure(v != v2);
+				ensure(v.equal(v2));
+
+				v = v2;
+				ensure(!(v == v2)); // different pointers
+				ensure(v.equal(v2));
+
+				v[1] = X(4);
+				ensure(!v.equal(v2));
+			}
+
+			return 0;
+		}
+#endif // _DEBUG
+	};
+
+	//
+	// BLAS level 1
+	//
+
+	// arg max |x_i|
+	template<class X>
+	inline X amax(const vector<X>& x)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samax(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damax(x.size(), x.data(), x.incr());
+		}
+
+		return i;
+	}
+
+	// arg min |x_i|
+	template<class X>
+	inline X amin(const vector<X>& x)
+	{
+		int i = INT_MAX;
+
+		if constexpr (std::is_same_v <X, float>) {
+			i = cblas_samin(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			i = cblas_damin(x.size(), x.data(), x.incr());
+		}
+
+		return i;
+	}
+
+	// sum_i |x_i|
+	template<class X>
+	inline X asum(const vector<X>& x)
+	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
+		if constexpr (std::is_same_v <X, float>) {
+			s = cblas_sasum(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			s = cblas_dasum(x.size(), x.data(), x.incr());
+		}
+
+		return s;
+	}
+
+	// y = a x + y
+	template<class X>
+	inline vector<X> axpy(X a, const vector<X>& x, vector<X> y)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_daxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
+		}
+
+		return y;
+	}
+
+	// x . y
+	template<class X>
+	inline X dot(const vector<X>& x, const vector<X>& y)
+	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
+		if constexpr (std::is_same_v <X, float>) {
+			s = cblas_sdot(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			s = cblas_ddot(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+
+		return s;
+	}
+
+	// sqrt (sum_i v_i^2)
+	template<class X>
+	inline X nrm2(const vector<X>& x)
+	{
+		X s = std::numeric_limits<X>::quiet_NaN();
+
+		if constexpr (std::is_same_v <X, float>) {
+			s = cblas_snrm2(x.size(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			s = cblas_dnrm2(x.size(), x.data(), x.incr());
+		}
+
+		return s;
+	}
+
+	template<class X>
+	inline void rot(vector<X> x, vector<X> y, X c, X s)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_srot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
+		}
+	}
+
+	template<class X>
+	inline void swap(vector<X> x, vector<X> y)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		}
+	}
+
+	// x = a x
+	template<class X>
+	inline vector<X> scal(X a, vector<X> x)
+	{
+		if constexpr (std::is_same_v <X, float>) {
+			cblas_sscal(x.size(), a, x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v <X, double>) {
+			cblas_dscal(x.size(), a, x.data(), x.incr());
+		}
+
+		return x;
+	}
+#if 0
 	template<class X, class I>
 	class indirect_vector {
 		// operator[](I::type j) { return v[i[j]]; }
@@ -311,11 +513,12 @@ namespace blas {
 
 #endif // _DEBUG
 	};
-
+#endif 0
 	// phony uplo
 	static constexpr CBLAS_UPLO CblasNoUplo = static_cast<CBLAS_UPLO>(0);
 
 	// non owning matrix
+	//!!! store trans in matrix, remove TRANS and UPLO type
 	template<typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUplo>
 	class matrix {
 	protected:
@@ -362,6 +565,7 @@ namespace blas {
 			return true;
 		}
 
+		//!!! virtual ???
 		int index(int i, int j) const
 		{
 			return TRANS == CblasNoTrans ? i * c + j : i + j * r;
@@ -369,10 +573,16 @@ namespace blas {
 
 		X operator()(int i, int j) const
 		{
+			i = xmod(i, r);
+			j = xmod(j, c);
+
 			return a[index(i, j)];
 		}
 		X& operator()(int i, int j)
 		{
+			i = xmod(i, r);
+			j = xmod(j, c);
+
 			return a[index(i, j)];
 		}
 
@@ -409,15 +619,15 @@ namespace blas {
 		// int for BLAS
 		int rows() const
 		{
-			return static_cast<int>(r);
+			return r;
 		}
 		int columns() const
 		{
-			return static_cast<int>(c);
+			return c;
 		}
 		int size() const
 		{
-			return static_cast<int>(r * c);
+			return r * c;
 		}
 		// leading dimension
 		int ld() const
@@ -450,16 +660,19 @@ namespace blas {
 		}
 		matrix& resize(int _r, int _c, X* _a = nullptr)
 		{
-			if (_a != nullptr)
+			if (_a != nullptr) {
 				a = _a;
-			else
+			}
+			else {
 				ensure(size() == _r * _c);
+			}
 			r = _r;
 			c = _c;
 
 			return *this;
 		}
 
+		//!!! use TRANS = trans
 		auto transpose() const
 		{
 			return matrix<X, TRANS == CblasNoTrans ? CblasTrans : CblasNoTrans>(c, r, a);
@@ -669,18 +882,20 @@ namespace blas {
 #endif // _DEBUG
 	}; // matrix
 
-	// static???
+//#if 0
+	
 	template<std::size_t N, typename X, CBLAS_TRANSPOSE TRANS = CblasNoTrans, CBLAS_UPLO UPLO = CblasNoUplo>
 	class identity_matrix : public matrix<X,TRANS,UPLO>
 	{
-		X id[N*N];
+		inline static X _id[N*N];
 	public:
 		identity_matrix()
 			: matrix<X,TRANS,UPLO>(N, N)
 		{
-			matrix<X, TRANS, UPLO>::a = id;
-			for (int i = 0; i < N; ++i)
-				matrix<X,TRANS,UPLO>::operator()(i, i) = 1;
+			matrix<X, TRANS, UPLO>::a = _id;
+			if (_id[0] != X(1))
+				for (int i = 0; i < N; ++i)
+					matrix<X,TRANS,UPLO>::operator()(i, i) = 1;
 		}
 
 #ifdef _DEBUG
@@ -701,146 +916,14 @@ namespace blas {
 		}
 #endif // _DEBUG
 	}; // identity_matrix
-
-	//
-	// BLAS level 1
-	//
-
-	// arg max |x_i|
-	template<class X>
-	inline X amax(const vector<X>& x)
-	{
-		int i = INT_MAX;
-
-		if constexpr (std::is_same_v <X, float>) {
-			i = cblas_samax(x.size(), x.data(), x.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			i = cblas_damax(x.size(), x.data(), x.incr());
-		}
-
-		return i;
-	}
-
-	// arg min |x_i|
-	template<class X>
-	inline X amin(const vector<X>& x)
-	{
-		int i = INT_MAX;
-
-		if constexpr (std::is_same_v <X, float>) {
-			i = cblas_samin(x.size(), x.data(), x.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			i = cblas_damin(x.size(), x.data(), x.incr());
-		}
-
-		return i;
-	}
-
-	// sum_i |x_i|
-	template<class X>
-	inline X asum(const vector<X>& x)
-	{
-		X s = std::numeric_limits<X>::quiet_NaN();
-
-		if constexpr (std::is_same_v <X, float>) {
-			s = cblas_sasum(x.size(), x.data(), x.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			s = cblas_dasum(x.size(), x.data(), x.incr());
-		}
-
-		return s;
-	}
-
-	// y = a x + y
-	template<class X>
-	inline vector<X> axpy(X a, const vector<X>& x, vector<X> y)
-	{
-		if constexpr (std::is_same_v <X, float>) {
-			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			cblas_daxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
-		}
-
-		return y;
-	}
-
-	// x . y
-	template<class X>
-	inline X dot(const vector<X>& x, const vector<X>& y)
-	{
-		X s = std::numeric_limits<X>::quiet_NaN();
-
-		if constexpr (std::is_same_v <X, float>) {
-			s = cblas_sdot(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			s = cblas_ddot(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-
-		return s;
-	}
-
-	// sqrt (sum_i v_i^2)
-	template<class X>
-	inline X nrm2(const vector<X>& x)
-	{
-		X s = std::numeric_limits<X>::quiet_NaN();
-
-		if constexpr (std::is_same_v <X, float>) {
-			s = cblas_snrm2(x.size(), x.data(), x.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			s = cblas_dnrm2(x.size(), x.data(), x.incr());
-		}
-
-		return s;
-	}
-
-	template<class X>
-	inline void rot(vector<X> x, vector<X> y, X c, X s)
-	{
-		if constexpr (std::is_same_v <X, float>) {
-			cblas_srot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
-		}
-	}
-
-	template<class X>
-	inline void swap(vector<X> x, vector<X> y)
-	{
-		if constexpr (std::is_same_v <X, float>) {
-			cblas_sswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			cblas_dswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-	}
-
-	// x = a x
-	template<class X>
-	inline vector<X> scal(X a, vector<X> x)
-	{
-		if constexpr (std::is_same_v <X, float>) {
-			cblas_sscal(x.size(), a, x.data(), x.incr());
-		}
-		if constexpr (std::is_same_v <X, double>) {
-			cblas_dscal(x.size(), a, x.data(), x.incr());
-		}
-
-		return x;
-	}
+//#endif // 0
 
 	//
 	// BLAS level 2
 	//
 	
 	// scale rows/cols of m by v
+	//!!! remove TRANS an UPLO
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
 	inline matrix<X, TRANS, UPLO>& scal(const vector<X>& v, matrix<X, TRANS, UPLO>& m)
 	{
@@ -913,6 +996,7 @@ namespace blas {
 	 
 	// general matrix multiplication with preallocated memory in _c
 	// Does full multiplication and ignores uplo
+	//!!! remove TRANS and UPLO
 	template<class X, CBLAS_TRANSPOSE TA, CBLAS_TRANSPOSE TB, CBLAS_UPLO ULA, CBLAS_UPLO ULB>
 	inline matrix<X> gemm(const matrix<X,TA, ULA>& a, const matrix<X,TB, ULB>& b, X* _c, X alpha = 1, X beta = 0)
 	{
@@ -968,6 +1052,7 @@ namespace blas {
 // { return gemm(a, b); }
 
 	// b = op(a)*b;
+	// Use matrix_uplo subclass, no phony uplo
 	template<class X, CBLAS_TRANSPOSE TRANS, CBLAS_UPLO UPLO>
 	inline matrix<X>& trmm(const matrix<X,TRANS,UPLO>& a, matrix<X>& b, X alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
