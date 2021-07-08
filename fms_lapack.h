@@ -5,7 +5,7 @@
 
 namespace lapack {
 
-	// BLAS to LAPACK conversion
+	// CBLAS to LAPACK conversion
 	template<CBLAS_TRANSPOSE T>
 	struct cblas_trans { static char const trans;  };
 	template<>
