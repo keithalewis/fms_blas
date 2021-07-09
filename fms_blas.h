@@ -554,7 +554,7 @@ namespace blas {
 		// linear copy
 		matrix& copy(int _n, const T* _v, int _dn = 1)
 		{
-			to_vector().copy(_n, _v, _dn);
+			to_vector().copy(_n, _v, _dn); // uses BLAS copy
 
 			return *this;
 		}
@@ -563,16 +563,21 @@ namespace blas {
 		{
 			return copy((int)v.size(), v.begin(), 1);
 		}
+		// use m.copy(n.to_vector()) to copy contents
 		matrix& copy(const vector<T>& v)
 		{
 			return copy(v.size(), v.data(), v.incr());
 		}
+		// exact copy
 		matrix& copy(const matrix<T>& m)
 		{
-			ensure(rows() == m.rows() and columns() == m.columns());
+			ensure(size() == m.size());
 
-			for (int i = 0; i < rows(); ++i)
-				row(i).copy(m.row(i));
+			r = m.r;
+			c = m.c;
+			t = m.t;
+
+			to_vector().copy(r*c, m.a);
 
 			return *this;
 		}
@@ -744,7 +749,8 @@ namespace blas {
 			}
 			// row/column
 			{
-				auto a = matrix<T>(2, 3, _a).copy(a0);
+				auto a = matrix<T>(2, 3, _a).copy({ 1, 2, 3, 4, 5, 6 });
+
 				T _r1[] = { 4, 5, 6 };
 				auto r1 = a.row(1);
 				ensure(r1.equal(vector<T>(_r1)));
@@ -814,7 +820,7 @@ namespace blas {
 		return y;
 	}
 
-	// scale rows of m by v
+	// scale rows/columns of m by v
 	template<class T>
 	inline matrix<T> scal(const vector<T>& v, matrix<T> m)
 	{
@@ -912,6 +918,27 @@ namespace blas {
 
 			c = gemm<T>(a.transpose(), id2, c.data());
 			ensure(c.equal(a.transpose()));
+		}
+		{
+			T _a[6], _b[9];
+			auto a = matrix<T>(2, 3, _a).copy({ 1, 2, 3, 4, 5, 6 });
+			auto a_ = a.transpose();
+
+			auto b = gemm<T>(a_, a, _b);
+			for (int i = 0; i < b.rows(); ++i)
+				for (int j = 0; j < b.columns(); ++j)
+					ensure(b(i, j) = dot<T>(a_.row(i), a.column(j)));
+
+			b = gemm<T>(a, a_, _b);
+			for (int i = 0; i < b.rows(); ++i)
+				for (int j = 0; j < b.columns(); ++j)
+					ensure(b(i, j) = dot<T>(a.row(i), a_.column(j)));
+
+			T _c[3];
+			for (int j = 0; j < a_.columns(); ++j) {
+				vector<T> c = gemv(a, a_.column(j), _c);
+				ensure(c.equal(b.column(j)));
+			}
 		}
 
 		return 0;

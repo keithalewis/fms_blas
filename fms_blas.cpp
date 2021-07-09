@@ -8,6 +8,7 @@ int fms_blas_test()
 #ifdef _DEBUG
 	blas::vector<X>::test();
 	blas::vector_array<X>::test();
+	blas::matrix_array<X>::test();
 	//blas::slice<>::test<X>();
 	blas::matrix<X>::test();
 	blas::identity_matrix<3,X>::test();

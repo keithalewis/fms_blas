@@ -26,8 +26,8 @@ Use `v.fill(x)` to set all values to the same number `x`.
 
 The member functions `operator[]` access either the value or reference at the appropriate increment.
 It is cyclic so, e.g., `v[-1]` is the last element. BLAS doesn't know anything about this member function.
-Other functions invisible to BLAS are all the accoutremnts needed to make a vector
-a bidirectional iterator if its increment is positive.
+Other functions invisible to BLAS are the accoutremnts needed to make a vector
+a forward iterator if its increment is positive. Vectors can be used in range `for` loops.
 The functons `take(i)` and `drop(i)` take or drop elements from the beginning (i > 0)
 or end (i < 0) of the array. Free standing verions are also defined that do not modify
 the vector.

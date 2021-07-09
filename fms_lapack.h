@@ -64,6 +64,7 @@ namespace lapack {
 
 			potrf(CblasLower, a);
 			ensure(a.equal(l, CblasLower));
+			ensure(!a.equal(l)); // potrf messes up lower part
 		}
 		
 		return 0;
@@ -123,18 +124,21 @@ namespace lapack {
 	}
 #endif // _DEBUG
 
-	// solve A * X = B for X where A is positive definite
-	// The columns of B are the solutions.
+	// Solve A * X = B for X where A is positive definite.
+	// The columns of B are the solutions on exit.
+	// Must have 0 in lower or upper region.
 	template<class T>
 	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::matrix<T>& b)
 	{
 		char ul = uplo == CblasUpper ? 'U' : 'L';
 
 		if constexpr (std::is_same_v<T, float>) {
-			return LAPACKE_spotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.columns(), a.data(), a.ld(), b.data(), b.ld());
+			return LAPACKE_spotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(), 
+				a.data(), a.ld(), b.data(), b.ld());
 		}
 		if constexpr (std::is_same_v<T, double>) {
-			return LAPACKE_dpotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.columns(), a.data(), a.ld(), b.data(), b.ld());
+			return LAPACKE_dpotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(), 
+				a.data(), a.ld(), b.data(), b.ld());
 		}
 	}
 
@@ -145,12 +149,12 @@ namespace lapack {
 	{
 		{
 			T _a[4], _b[4], _x[4], _y[4];
-			auto a = blas::matrix<T>(2, 2, _a).copy({ 1, 2, 2, 5 });
+			auto a = blas::matrix<T>(2, 2, _a).copy({ 1, 2, 0, 5 });
 			auto b = blas::matrix<T>(2, 2, _b).copy({ 1, 2, 3, 4 });
 			auto x = blas::matrix<T>(2, 2, _x).copy(b);
+			ensure(x.equal(b));
 
 			potrf<T>(CblasUpper, a);
-			a(1, 0) = T(0);
 			potrs<T>(CblasUpper, a, x);
 			auto b0 = blas::gemv<T>(a, x.row(0), _y);
 			ensure(b0.equal(b.row(0)));
