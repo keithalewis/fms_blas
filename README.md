@@ -48,11 +48,11 @@ The `trans` flags of `a` and `b` indicate BLAS should adjust its algorithms appr
 performing a messy transpose.
 
 If one of the matrices in the product is upper or lower triangular then the product can be
-performed using the memory of the other. The function `trmm(uplo, a, b, alpha = 1)`
+performed using the memory of the other. If `a` is triangular then `trmm(uplo, a, b, alpha = 1)`
 updates the content of `matrix& b` with `alpha op(a)*b` and the function
 `trmm(b, uplo, a, alpha)` updates `b` with `alpha b * op(a)`.
 	
 ## Remarks
 
-vector equal is looser than matrix equal
-`vector` is a view of strided memory.
+Vector equal is looser than matrix equal since the vectors do not need to have the same increment.
+Matrix equal requires both to have the same shape, transpose flag, and contents.
