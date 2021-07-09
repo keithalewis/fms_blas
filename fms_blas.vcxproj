@@ -157,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="ensure.h" />
     <ClInclude Include="fms_blas.h" />
+    <ClInclude Include="fms_blas_array.h" />
     <ClInclude Include="fms_lapack.h" />
   </ItemGroup>
   <ItemGroup>

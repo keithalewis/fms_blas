@@ -1,5 +1,6 @@
 // fms_blas.cpp - BLAS tests
 #include "fms_lapack.h"
+#include "fms_blas_array.h"
 
 template<class X>
 int fms_blas_test()
