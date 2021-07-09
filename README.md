@@ -1,11 +1,11 @@
 # C++ wrappers for BLAS and LAPACK
 
-This library consists of C++ wrappers that respect the zen of LAPACK.
+This library consists of minimal C++ wrappers that respect the zen of BLAS and LAPACK.
 Unlike C++, BLAS and LAPACK routines do not allocate memory; it is your job to
 provide pointers to sufficient space for return values. Function arguments
 are often views on existing memory. The classes `blas::vector` and `blas::matrix`
 provide C++ conveniences for this, but you must manage memory lifetimes yourself.
-These are returned as values by some `const` member functions but contain non-`const`
+Vectors and matrices are returned as values by some `const` member functions but contain non-`const`
 pointers that can be used to modify memory so you can't rely on const-correctness 
 or value types when using this library.
 
