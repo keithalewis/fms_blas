@@ -479,79 +479,6 @@ namespace blas {
 
 #endif // _DEBUG
 
-#if 0
-	template<class X, class I>
-	class indirect_vector {
-		// operator[](I::type j) { return v[i[j]]; }
-	};
-
-	template<class I = int>
-	class slice {
-		I start, size, stride;
-	public:
-		using iterator_category = std::forward_iterator_tag;
-		using value_type = I;
-		using difference_type = std::ptrdiff_t;
-		using pointer = I*;
-		using reference = I&;
-
-		slice(I start, I size, I stride = 1)
-			: start(start), size(size), stride(stride)
-		{ }
-		slice(const slice&) = default;
-		slice& operator=(const slice&) = default;
-		~slice()
-		{ }
-
-		explicit operator bool() const
-		{
-			return size != 0;
-		}
-		auto operator<=>(const slice&) const = default;
-
-		auto begin() const
-		{
-			return *this;
-		}
-		auto end() const
-		{
-			return slice(start + size * stride, 0, stride);
-		}
-
-		value_type operator*() const
-		{
-			return start;
-		}
-		slice& operator++()
-		{
-			if (size) {
-				start += stride;
-				--size;
-			}
-
-			return *this;
-		}
-		slice operator++(int)
-		{
-			auto tmp{ *this };
-
-			operator++();
-
-			return tmp;
-		}
-#ifdef _DEBUG
-
-		template<class X>
-		static int test()
-		{
-
-			return 0;
-		}
-
-#endif // _DEBUG
-	};
-#endif 0
-
 	// non owning view of matrix
 	template<typename T>
 	class matrix {
@@ -639,6 +566,15 @@ namespace blas {
 		matrix& copy(const vector<T>& v)
 		{
 			return copy(v.size(), v.data(), v.incr());
+		}
+		matrix& copy(const matrix<T>& m)
+		{
+			ensure(rows() == m.rows() and columns() == m.columns());
+
+			for (int i = 0; i < rows(); ++i)
+				row(i).copy(m.row(i));
+
+			return *this;
 		}
 
 		vector<T> to_vector() const
@@ -859,6 +795,24 @@ namespace blas {
 	//
 	// BLAS level 2
 	//
+
+	// y = alpha op(A)*x + beta y
+	template<class T>
+	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, T* _y, T alpha = T(1), T beta = T(0))
+	{
+		vector<T> y(a.rows(), _y);
+
+		if constexpr (std::is_same_v<T, float>) {
+			cblas_sgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
+				x.data(), x.incr(), beta, y.data(), y.incr());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			cblas_dgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
+				x.data(), x.incr(), beta, y.data(), y.incr());
+		}
+
+		return y;
+	}
 
 	// scale rows of m by v
 	template<class T>

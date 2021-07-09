@@ -83,4 +83,78 @@ namespace blas {
 
 	};
 
+
+#if 0
+	template<class X, class I>
+	class indirect_vector {
+		// operator[](I::type j) { return v[i[j]]; }
+	};
+
+	template<class I = int>
+	class slice {
+		I start, size, stride;
+	public:
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = I;
+		using difference_type = std::ptrdiff_t;
+		using pointer = I*;
+		using reference = I&;
+
+		slice(I start, I size, I stride = 1)
+			: start(start), size(size), stride(stride)
+		{ }
+		slice(const slice&) = default;
+		slice& operator=(const slice&) = default;
+		~slice()
+		{ }
+
+		explicit operator bool() const
+		{
+			return size != 0;
+		}
+		auto operator<=>(const slice&) const = default;
+
+		auto begin() const
+		{
+			return *this;
+		}
+		auto end() const
+		{
+			return slice(start + size * stride, 0, stride);
+		}
+
+		value_type operator*() const
+		{
+			return start;
+		}
+		slice& operator++()
+		{
+			if (size) {
+				start += stride;
+				--size;
+			}
+
+			return *this;
+		}
+		slice operator++(int)
+		{
+			auto tmp{ *this };
+
+			operator++();
+
+			return tmp;
+		}
+#ifdef _DEBUG
+
+		template<class X>
+		static int test()
+		{
+
+			return 0;
+		}
+
+#endif // _DEBUG
+	};
+#endif 0
+
 } // namespace blas

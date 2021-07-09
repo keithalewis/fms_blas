@@ -16,6 +16,7 @@ int fms_blas_test()
 	blas::scal_test<X>();
 	lapack::potrf_test<X>();
 	lapack::potri_test<X>();
+	lapack::potrs_test<X>();
 #endif // _DEBUG
 
 	return 0;
