@@ -27,6 +27,9 @@
     <ClInclude Include="fms_blas_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fms_blas_iterator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

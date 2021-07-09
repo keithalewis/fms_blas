@@ -130,11 +130,11 @@ namespace blas {
 		{
 			return dn;
 		}
-		T* data()
+		pointer data()
 		{
 			return v;
 		}
-		const T* data() const
+		const pointer data() const
 		{
 			return v;
 		}
@@ -148,23 +148,23 @@ namespace blas {
 			return v[xmod(i * dn, n * dn)];
 		}
 
+		// usable in range for
 		auto begin()
 		{
 			return *this;
 		}
 		const auto begin() const
 		{
-			return *this;
+			return *this;;
 		}
 		auto end()
 		{
-			return vector<T>(0, v + n * abs(dn), dn);
+			return vector(0, v + n * abs(dn), dn);
 		}
 		const auto end() const
 		{
-			return vector<T>(0, v + n * abs(dn), dn);
+			return vector(0, v + n * abs(dn), dn);
 		}
-
 		value_type operator*() const
 		{
 			return *v;
@@ -175,6 +175,8 @@ namespace blas {
 		}
 		vector& operator++()
 		{
+			ensure(dn > 0);
+
 			if (n and dn > 0) {
 				--n;
 				v += dn;
@@ -187,23 +189,6 @@ namespace blas {
 			auto tmp{ *this };
 
 			operator++();
-
-			return *this;
-		}
-		vector& operator--()
-		{
-			if (!n and dn > 0) {
-				++n;
-				v -= dn;
-			}
-
-			return *this;
-		}
-		vector& operator--(int)
-		{
-			auto tmp{ *this };
-
-			operator--();
 
 			return *this;
 		}
@@ -307,6 +292,28 @@ namespace blas {
 				ensure(v[0] = 1);
 				v.drop(10);
 				ensure(v.size() == 0);
+			}
+			{
+				T _v[6];
+				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+				auto vi = v.begin();
+				ensure(*vi == T(1));
+				++vi;
+				ensure(*vi == T(2));
+				vi++;
+				ensure(*vi == T(3));
+				++vi;
+				ensure(vi == v.end());
+			}
+			{
+				T _v[6];
+				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+
+				T i = 1;
+				for (auto vi : v) {
+					ensure(vi == i);
+					i += 1;
+				}
 			}
 
 			return 0;
@@ -569,29 +576,28 @@ namespace blas {
 		}
 		auto operator<=>(const matrix&) const = default;
 
-		// equal shape, trans and contents
+		// equal contents taking transpose into account
 		bool equal(const matrix& m) const
 		{
-			if (r != m.r or c != m.c or t != m.t)
+			if (rows() != m.rows() or columns() != m.columns())
 				return false;
 
-			return std::equal(begin(), end(), m.begin());
+			for (int i = 0; i < rows(); ++i)
+				for (int j = 0; j < columns(); ++j)
+					if (operator()(i, j) != m(i, j))
+						return false;
+
+			return true;
 		}
+		// equal to upper or lower component of m only
 		bool equal(const matrix& m, CBLAS_UPLO ul) const
 		{
-			if (r != m.r or c != m.c or t != m.t)
+			if (rows() != m.rows() or columns() != m.columns())
 				return false;
 
 			for (int i = 0; i < rows(); ++i) {
-				int jlo, jhi;
-				if (ul == CblasUpper) {
-					jlo = i;
-					jhi = columns();
-				}
-				else {
-					jlo = 0;
-					jhi = i;
-				}
+				int jlo = (ul == CblasUpper) ? i : 0;
+				int jhi = (ul == CblasLower) ? i : columns();
 				for (int j = jlo; j < jhi; ++j)
 					if (operator()(i, j) != m(i, j))
 						return false;
@@ -684,7 +690,7 @@ namespace blas {
 		// leading dimension
 		int ld() const
 		{
-			return t == CblasTrans ? r : c;
+			return c;
 		}
 
 		matrix transpose() const
@@ -808,8 +814,7 @@ namespace blas {
 				ensure(r1.equal(vector<T>(_r1)));
 
 				T _c1[] = { 2, 5 };
-				auto c1 = a.column(1);
-				ensure(c1.equal(vector<T>(_c1)));
+				ensure(a.column(1).equal(vector<T>(_c1)));
 			}
 
 			return 0;
@@ -949,14 +954,10 @@ namespace blas {
 			ensure(c.equal(a));
 
 			c = gemm<T>(id3, a.transpose(), c.data());
-			ensure(c.rows() == id3.rows());
-			ensure(c.columns() == a.transpose().columns());
-			ensure(c.to_vector().equal(a.to_vector()));
+			ensure(c.equal(a.transpose()));
 
 			c = gemm<T>(a.transpose(), id2, c.data());
-			ensure(c.rows() == a.transpose().rows());
-			ensure(c.columns() == id2.columns());
-			ensure(c.to_vector().equal(a.to_vector()));
+			ensure(c.equal(a.transpose()));
 		}
 
 		return 0;
