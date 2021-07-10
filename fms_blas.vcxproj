@@ -157,8 +157,14 @@
   <ItemGroup>
     <ClInclude Include="ensure.h" />
     <ClInclude Include="fms_blas.h" />
-    <ClInclude Include="fms_blas_array.h" />
-    <ClInclude Include="fms_blas_iterator.h" />
+    <ClInclude Include="fms_blas1.h" />
+    <ClInclude Include="fms_blas2.h" />
+    <ClInclude Include="fms_blas3.h" />
+    <ClInclude Include="fms_blas_matrix_array.h" />
+    <ClInclude Include="fms_blas_vector_array.h" />
+    <ClInclude Include="fms_blas_vector_iterator.h" />
+    <ClInclude Include="fms_blas_matrix.h" />
+    <ClInclude Include="fms_blas_vector.h" />
     <ClInclude Include="fms_lapack.h" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
-// fms_blas_iterator.h - BLAS vector iterator
+// fms_blas_vector_iterator.h - BLAS vector iterator
 #pragma once
-#include "fms_blas.h"
+#include "fms_blas_vector.h"
 
 namespace blas {
 

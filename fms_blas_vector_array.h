@@ -1,6 +1,7 @@
-// fms_blas_array.h - Backing store for BLAS vectors and matrices
+// fms_blas_vector_array.h - Backing store for BLAS vectors and matrices
 #pragma once
-#include "fms_blas.h"
+#include <valarray>
+#include "fms_blas_vector.h"
 
 namespace blas {
 
@@ -71,6 +72,5 @@ namespace blas {
 		}
 #endif // _DEBUG
 	};
-
 
 } // namespace blas
