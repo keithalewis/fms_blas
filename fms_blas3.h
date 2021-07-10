@@ -241,16 +241,20 @@ namespace blas {
 	inline int trsm_test()
 	{
 		{
-			/*
 			T _a[6], _b[6], _x[6];
 			auto a = matrix<T>(2, 3, _a);
 
 			a.copy({ 1,2,3,4,5,6 });
-			auto x = matrix<T>(2, 2, _x).copy({ 7,8,9,10 });
+			auto b = matrix<T>(2, 2, _b).copy({ 7,8,9,10 });
+			auto x = matrix<T>(2, 2, _x).copy(b);
+
 			trmm(CblasUpper, a, x);
-			
-			// solve A X = B
-			*/
+			trsm(CblasUpper, a, x);
+			ensure(x.equal(b));
+
+			trmm(CblasLower, a, x);
+			trsm(CblasLower, a, x);
+			ensure(x.equal(b));
 		}
 
 		return 0;
