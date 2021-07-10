@@ -20,6 +20,15 @@
 #include <valarray>
 #include "ensure.h"
 
+#define INTEL_ONEMKL "https://software.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/"
+#define ONEMKL_CBLAS "top/blas-and-sparse-blas-routines/blas-routines/blas-level-1-routines-and-functions/"
+
+//                    https://software.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/
+//                    top/blas-and-sparse-blas-routines/blas-routines.html
+// https://software.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-1-routines-and-functions/cblas-rot.html
+
+#define INTEL_CBLAS(x) INTEL_ONEMKL ONEMKL_CBLAS "cblas-" x ".html"
+
 namespace blas {
 
 #pragma warning(push)
@@ -35,7 +44,9 @@ namespace blas {
 	}
 #pragma warning(pop)
 
-	// non-owning strided array view of T
+	static inline const char vector_doc[] = R"xyzyx(
+	Non-owning strided view of array of T tailored to CBLAS.
+)xyzyx";
 	template<typename T>
 	class vector {
 	protected:
@@ -51,13 +62,18 @@ namespace blas {
 		vector()
 			: n(0), v(nullptr), dn(1)
 		{ }
+		
+		// Allocation and lifetime of T* managed externally.
 		vector(int n, T* v, int dn = 1)
 			: n(n), v(v), dn(dn)
 		{ }
+		
+		// T _v[] = {1, ...}; vector<T> v(_v);
 		template<size_t N>
 		vector(T(&v)[N])
 			: n(static_cast<int>(N)), v(v), dn(1)
 		{ }
+		
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
 		virtual ~vector()
@@ -67,60 +83,8 @@ namespace blas {
 		{
 			return n != 0;
 		}
-		// size and pointer equality
+		// size, pointer, and increment equality
 		auto operator<=>(const vector&) const = default;
-
-		// equal size and contents, any incr
-		bool equal(int _n, const T* _v, int _dn = 1) const
-		{
-			if (n != _n)
-				return false;
-
-			for (int i = 0; i < n; ++i)
-				if (operator[](i) != _v[i * _dn])
-					return false;
-
-			return true;
-		}
-		// E.g., v.equal({w0, w1, ...})
-		bool equal(const std::initializer_list<T>& w)
-		{
-			return equal((int)w.size(), w.begin(), 1);
-		}
-		bool equal(const vector& w) const
-		{
-			return equal(w.size(), w.data(), w.incr());
-		}
-
-		// assign contents to data
-		vector& copy(int n_, const T* v_, int dn_ = 1)
-		{
-			ensure(n == n_);
-
-			if constexpr (std::is_same_v<T, float>)
-				cblas_scopy(n_, v_, dn_, v, dn);
-			if constexpr (std::is_same_v<T, double>)
-				cblas_dcopy(n_, v_, dn_, v, dn);
-
-			return *this;
-		}
-		vector& copy(const vector& w)
-		{
-			return copy(w.size(), w.data(), w.incr());
-		}
-		vector& copy(const std::initializer_list<const T>& w)
-		{
-			return copy((int)w.size(), w.begin(), 1);
-		}
-
-		vector& fill(T x)
-		{
-			for (int i = 0; i < n; ++i) {
-				operator[](i) = x;
-			}
-
-			return *this;
-		}
 
 		int size() const
 		{
@@ -138,14 +102,15 @@ namespace blas {
 		{
 			return v;
 		}
+
 		// cyclic index
 		T operator[](int i) const
 		{
-			return v[xmod(i * dn, n * dn)];
+			return v[xmod(i * dn, n * abs(dn))];
 		}
 		T& operator[](int i)
 		{
-			return v[xmod(i * dn, n * dn)];
+			return v[xmod(i * dn, n * abs(dn))];
 		}
 
 		// usable in range for
@@ -177,7 +142,7 @@ namespace blas {
 		{
 			ensure(dn > 0);
 
-			if (n and dn > 0) {
+			if (n) {
 				--n;
 				v += dn;
 			}
@@ -189,6 +154,61 @@ namespace blas {
 			auto tmp{ *this };
 
 			operator++();
+
+			return *this;
+		}
+
+		// equal size and contents, any incr
+		bool equal(int _n, const T* _v, int _dn = 1) const
+		{
+			if (n != _n)
+				return false;
+
+			for (int i = 0; i < n; ++i)
+				if (operator[](i) != _v[i * _dn])
+					return false;
+
+			return true;
+		}
+		// v.equal({w0, w1, ...})
+		bool equal(const std::initializer_list<T>& w)
+		{
+			return equal((int)w.size(), w.begin(), 1);
+		}
+		bool equal(const vector& w) const
+		{
+			return equal(w.size(), w.data(), w.incr());
+		}
+
+		// assign values to data
+		vector& copy(int n_, const T* v_, int dn_ = 1)
+		{
+			ensure(n == n_);
+
+			if constexpr (std::is_same_v<T, float>)
+				cblas_scopy(n_, v_, dn_, v, dn);
+			if constexpr (std::is_same_v<T, double>)
+				cblas_dcopy(n_, v_, dn_, v, dn);
+
+			return *this;
+		}
+		// auto v = vector<T>(n, _v, dn).copy({w0, ...});
+		vector& copy(const std::initializer_list<const T>& w)
+		{
+			return copy((int)w.size(), w.begin(), 1);
+		}
+		// auto v = vector<T>(n, _v, dn).copy(w);
+		vector& copy(const vector& w)
+		{
+			return copy(w.size(), w.data(), w.incr());
+		}
+
+		// set all values to x
+		vector& fill(T x)
+		{
+			for (int i = 0; i < n; ++i) {
+				operator[](i) = x;
+			}
 
 			return *this;
 		}
@@ -208,6 +228,7 @@ namespace blas {
 
 			return *this;
 		}
+
 		// drop from front (i > 0) or back (i < 0)
 		vector& drop(int i)
 		{
@@ -245,8 +266,16 @@ namespace blas {
 			}
 			{
 				T _v[3];
-				vector<T> v(_v);
-				std::iota(v.begin(), v.end(), T(1));
+				auto v = vector<T>(_v).copy({ 1, 2, 3 });
+
+				T _v2[3];
+				vector<T> v2(_v2);
+				std::iota(v2.begin(), v2.end(), T(1));
+				ensure(v.equal(v2));
+
+				v2.copy(v);
+				ensure(v2.equal(v));
+
 				ensure(v);
 				ensure(v.size() == 3);
 				ensure(v[0] == 1);
@@ -254,10 +283,6 @@ namespace blas {
 				ensure(v[2] == 3);
 				ensure(v[4] == 2);
 				ensure(_v[1] == 2);
-
-				// blas::vector<T> v2(&_v[0]); // nope
-				vector<T> v2(3, &_v[0]);
-				ensure(v2.equal(v));
 
 				v[1] = T(4);
 				ensure(v[1] == T(4));
@@ -332,41 +357,32 @@ namespace blas {
 		return v.drop(i);
 	}
 
-
 	//
 	// BLAS level 1
 	//
 
 	// arg max |x_i|
 	template<class T>
-	inline T amax(const vector<T>& x)
+	inline auto iamax(const vector<T>& x)
 	{
-		int i = INT_MAX;
-
 		if constexpr (std::is_same_v <T, float>) {
-			i = cblas_samax(x.size(), x.data(), x.incr());
+			return cblas_isamax(x.size(), x.data(), x.incr());
 		}
 		if constexpr (std::is_same_v <T, double>) {
-			i = cblas_damax(x.size(), x.data(), x.incr());
+			return cblas_idamax(x.size(), x.data(), x.incr());
 		}
-
-		return i;
 	}
 
 	// arg min |x_i|
 	template<class T>
-	inline T amin(const vector<T>& x)
+	inline auto iamin(const vector<T>& x)
 	{
-		int i = INT_MAX;
-
 		if constexpr (std::is_same_v <T, float>) {
-			i = cblas_samin(x.size(), x.data(), x.incr());
+			return cblas_isamin(x.size(), x.data(), x.incr());
 		}
 		if constexpr (std::is_same_v <T, double>) {
-			i = cblas_damin(x.size(), x.data(), x.incr());
+			return cblas_idamin(x.size(), x.data(), x.incr());
 		}
-
-		return i;
 	}
 
 	// sum_i |x_i|
@@ -431,6 +447,7 @@ namespace blas {
 		return s;
 	}
 
+	// x' = c x + y, y' = c y - s x
 	template<class T>
 	inline void rot(vector<T> x, vector<T> y, T c, T s)
 	{
@@ -474,6 +491,16 @@ namespace blas {
 	template<class T>
 	inline int blas1_test()
 	{
+		{
+			T _v[3] = { 1, -2, 3 };
+			auto v = vector<T>(_v);
+
+			ensure(2 == iamax<T>(v));
+			ensure(0 == iamin<T>(v));
+			ensure(6 == asum<T>(v));
+			ensure(n2 == sqrt(T(14)));
+		}
+
 		return 0;
 	}
 

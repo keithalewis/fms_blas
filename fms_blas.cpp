@@ -7,7 +7,7 @@ int fms_blas_test()
 {
 #ifdef _DEBUG
 	blas::vector<X>::test();
-	blas::vector_array<X>::test();
+	blas::blas1_test<X>();
 	//blas::slice<>::test<X>();
 	blas::matrix<X>::test();
 	blas::identity_matrix<3,X>::test();
@@ -17,6 +17,9 @@ int fms_blas_test()
 	lapack::potrf_test<X>();
 	lapack::potri_test<X>();
 	lapack::potrs_test<X>();
+
+	blas::vector_array<X>::test();
+
 #endif // _DEBUG
 
 	return 0;
