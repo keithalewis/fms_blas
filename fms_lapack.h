@@ -49,6 +49,9 @@ namespace lapack {
 
 			X _a[4];
 			auto a = blas::gemm(u.transpose(), u, _a);
+			ensure(a.rows() == 2);
+			ensure(a.columns() == 2);
+			ensure(a.trans() == CblasNoTrans);
 			ensure(a.to_vector().equal({ 1, 2, 2, 5 }));
 
 			potrf(CblasUpper, a);
@@ -126,7 +129,7 @@ namespace lapack {
 
 	// Solve A * X = B for X where A is positive definite.
 	// The columns of B are the solutions on exit.
-	// Must have 0 in lower or upper region.
+	// Must have 0 in lower or upper region?
 	template<class T>
 	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::matrix<T>& b)
 	{

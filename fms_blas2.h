@@ -7,9 +7,9 @@ namespace blas {
 
 	// y = alpha op(A)*x + beta y
 	template<class T>
-	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, T* _y, T alpha = T(1), T beta = T(0))
+	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, T* _y, int yincr = 1, T alpha = T(1), T beta = T(0))
 	{
-		vector<T> y(a.rows(), _y);
+		vector<T> y(a.rows(), _y, yincr);
 
 		if constexpr (std::is_same_v<T, float>) {
 			cblas_sgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
@@ -65,5 +65,87 @@ namespace blas {
 	}
 
 #endif // _DEBUG
+
+	// x = op(A)*x where A is triangular
+	template<class T>
+	inline vector<T> trmv(CBLAS_UPLO uplo, const matrix<T>& a, T* _x, int xincr = 1, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		vector<T> x(a.rows(), _x, xincr);
+
+		if constexpr (std::is_same_v<T, float>) {
+			cblas_strmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			cblas_dtrmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
+		}
+
+		return x;
+	}
+
+	// Solve op(A) x = b for x where A is triangular and x = b on entry.
+	template<class T>
+	inline vector<T> trsv(CBLAS_UPLO uplo, const matrix<T>& a, T* _x, int xincr = 1, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		vector<T> x(a.rows(), _x, xincr);
+
+		if constexpr (std::is_same_v<T, float>) {
+			cblas_strsv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			cblas_dtrsv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
+		}
+
+		return x;
+	}
+
+#ifdef _DEBUG
+
+	template<class T>
+	inline int trsv_test()
+	{
+		{
+			T _a[4], _b[2], _x[2];
+			auto a = matrix<T>(2, 2, _a);
+			auto b = vector<T>(2, _b).copy({ 4,5 });
+			auto x = vector(2, _x).copy(b);
+
+			T _y1[2], _y2[2];
+
+			// y = A b
+			a.copy({ 1, 2, 0, 3 });
+			auto y1 = gemv<T>(a, b, _y1);
+			auto y2 = vector<T>(2, _y2).copy(b);
+			y2 = trmv<T>(CblasUpper, a, y2.data(), y2.incr());
+			ensure(y2.equal(y1));
+			y2 = trsv<T>(CblasUpper, a, y2.data());
+			ensure(y2.equal(b));
+
+			a.copy({ 1, 0, 2, 3 });
+			y1 = gemv<T>(a, b, _y1);
+			y2 = vector<T>(2, _y2).copy(b);
+			y2 = trmv<T>(CblasLower, a, y2.data(), y2.incr());
+			ensure(y2.equal(y1));
+			y2 = trsv<T>(CblasLower, a, y2.data());
+			ensure(y2.equal(b));
+		}
+
+		return 0;
+	}
+
+#endif // _DEBUG
+
+#ifdef _DEBUG
+
+	template<class T>
+	inline int blas2_test()
+	{
+		scal_test<T>();
+		trsv_test<T>();
+
+		return 0;
+	}
+
+#endif // _DEBUG
+
 
 } // namespace blas

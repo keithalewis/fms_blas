@@ -19,7 +19,7 @@ namespace blas {
 		{ }
 		matrix(const matrix&) = default;
 		matrix& operator=(const matrix&) = default;
-		~matrix()
+		virtual ~matrix()
 		{ }
 
 		explicit operator bool() const
@@ -316,5 +316,15 @@ namespace blas {
 		}
 #endif // _DEBUG
 	}; // identity_matrix
+
+	template<class T>
+	struct triangular_matrix : public matrix<T> {
+		CBLAS_UPLO uplo;
+		CBLAS_DIAG diag;
+	public:
+		triangular_matrix(const matrix<T>& m, CBLAS_UPLO uplo, CBLAS_DIAG diag)
+			: matrix<T>(m), uplo(uplo), diag(diag)
+		{ }
+	};
 
 } // namespace blas

@@ -65,30 +65,41 @@ namespace blas {
 
 #endif // _DEBUG
 
-	// b = alpha op(a)*b or b = alpha b*op(a)
+	// b = alpha op(a)*b or b = alpha b*op(a) using b in place
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO ul, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		if constexpr (std::is_same_v<T, float>) {
-			cblas_strmm(CblasRowMajor, lr, ul, a.trans(), diag,
+			cblas_strmm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 		}
 		if constexpr (std::is_same_v<T, double>) {
-			cblas_dtrmm(CblasRowMajor, lr, ul, a.trans(), diag,
+			cblas_dtrmm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 		}
 
 		return b;
 	}
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_UPLO ul, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		return trmm(CblasLeft, ul, a, b, alpha, diag);
+		return trmm(CblasLeft, uplo, a, b, alpha, diag);
 	}
 	template<class T>
-	inline matrix<T>& trmm(matrix<T>& b, CBLAS_UPLO ul, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(matrix<T>& b, CBLAS_UPLO uplo, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		return trmm(CblasRight, ul, a, b, alpha, diag);
+		return trmm(CblasRight, uplo, a, b, alpha, diag);
+	}
+
+	template<class T>
+	inline matrix<T>& trmm(const triangular_matrix<T>& a, matrix<T>& b, T alpha = 1)
+	{
+		return trmm(CblasLeft, a.uplo, a, b, alpha, a.diag);
+	}
+	template<class T>
+	inline matrix<T>& trmm(matrix<T>& b, const triangular_matrix<T>& a, T alpha = 1)
+	{
+		return trmm(CblasRight, a.uplo, a, b, alpha, a.diag);
 	}
 
 #ifdef _DEBUG
@@ -184,6 +195,78 @@ namespace blas {
 		return 0;
 	}
 
+#endif // _DEBUG
+
+	// Solve op(A)*X = alpha B or X*op(A) = alpha B for X where A is triangular
+	template<class T>
+	inline matrix<T>& trsm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& x, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		if constexpr (std::is_same_v<T, float>) {
+			cblas_strsm(CblasRowMajor, lr, uplo, a.trans(), diag,
+				x.rows(), x.columns(), alpha, a.data(), a.ld(), x.data(), x.ld());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			cblas_dtrsm(CblasRowMajor, lr, uplo, a.trans(), diag,
+				x.rows(), x.columns(), alpha, a.data(), a.ld(), x.data(), x.ld());
+		}
+
+		return x;
+	}
+	// solve op(A)*X = B
+	template<class T>
+	inline matrix<T>& trsm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& x, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		return trsm(CblasLeft, uplo, a, x, alpha, diag);
+	}
+	// solve X*op(A) = B
+	template<class T>
+	inline matrix<T>& trsm(matrix<T>& x, CBLAS_UPLO uplo, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		return trsm(CblasRight, uplo, a, x, alpha, diag);
+	}
+	template<class T>
+	inline matrix<T>& trsm(const triangular_matrix<T>& a, matrix<T>& x, T alpha = 1)
+	{
+		return trsm(CblasLeft, a.uplo, a, x, alpha, a.diag);
+	}
+	// solve X*op(A) = B
+	template<class T>
+	inline matrix<T>& trsm(matrix<T>& x, const triangular_matrix<T>& a, T alpha = 1)
+	{
+		return trsm(CblasRight, a.uplo, a, x, alpha, a.diag);
+	}
+
+#ifdef _DEBUG
+	template<class T>
+	inline int trsm_test()
+	{
+		{
+			/*
+			T _a[6], _b[6], _x[6];
+			auto a = matrix<T>(2, 3, _a);
+
+			a.copy({ 1,2,3,4,5,6 });
+			auto x = matrix<T>(2, 2, _x).copy({ 7,8,9,10 });
+			trmm(CblasUpper, a, x);
+			
+			// solve A X = B
+			*/
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
+
+#ifdef _DEBUG
+	template<class T>
+	inline int blas3_test()
+	{
+		gemm_test<T>();
+		trmm_test<T>();
+		trsm_test<T>();
+
+		return 0;
+	}
 #endif // _DEBUG
 
 

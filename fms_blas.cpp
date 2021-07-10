@@ -8,13 +8,11 @@ int fms_blas_test()
 #ifdef _DEBUG
 	blas::vector<X>::test();
 	blas::vector_array<X>::test();
-	blas::matrix_array<X>::test();
-	//blas::slice<>::test<X>();
 	blas::matrix<X>::test();
+	blas::matrix_array<X>::test();
 	blas::identity_matrix<3,X>::test();
-	blas::gemm_test<X>();
-	blas::trmm_test<X>();
-	blas::scal_test<X>();
+	blas::blas2_test<X>();
+	blas::blas3_test<X>();
 	lapack::potrf_test<X>();
 	lapack::potri_test<X>();
 	lapack::potrs_test<X>();
