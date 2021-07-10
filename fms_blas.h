@@ -498,7 +498,7 @@ namespace blas {
 			ensure(2 == iamax<T>(v));
 			ensure(0 == iamin<T>(v));
 			ensure(6 == asum<T>(v));
-			ensure(n2 == sqrt(T(14)));
+			ensure(sqrt(T(1 + 4 + 9)) == nrm2(v));
 		}
 
 		return 0;
