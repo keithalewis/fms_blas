@@ -1,6 +1,6 @@
 // fms_blas.cpp - BLAS tests
 #include "fms_lapack.h"
-#include "fms_blas_array.h"
+#include "fms_blas.h"
 
 template<class X>
 int fms_blas_test()
@@ -18,6 +18,9 @@ int fms_blas_test()
 	lapack::potrf_test<X>();
 	lapack::potri_test<X>();
 	lapack::potrs_test<X>();
+
+	blas::vector_array<X>::test();
+
 #endif // _DEBUG
 
 	return 0;

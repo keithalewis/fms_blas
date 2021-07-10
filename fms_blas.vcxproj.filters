@@ -24,10 +24,28 @@
     <ClInclude Include="fms_lapack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fms_blas_array.h">
+    <ClInclude Include="fms_blas_vector_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fms_blas_iterator.h">
+    <ClInclude Include="fms_blas_vector_iterator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas_vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas_matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fms_blas_matrix_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
