@@ -52,7 +52,7 @@ namespace lapack {
 			ensure(a.rows() == 2);
 			ensure(a.columns() == 2);
 			ensure(a.trans() == CblasNoTrans);
-			ensure(a.to_vector().equal({ 1, 2, 2, 5 }));
+			ensure(a.as_vector().equal({ 1, 2, 2, 5 }));
 
 			potrf(CblasUpper, a);
 			ensure(a.equal(u, CblasUpper));
@@ -63,7 +63,7 @@ namespace lapack {
 
 			X _a[4];
 			auto a = blas::gemm(l, l.transpose(), _a);
-			ensure(a.to_vector().equal({ 1, 2, 2, 5 }));
+			ensure(a.as_vector().equal({ 1, 2, 2, 5 }));
 
 			potrf(CblasLower, a);
 			ensure(a.equal(l, CblasLower));
@@ -104,7 +104,7 @@ namespace lapack {
 			
 			X _a[4];
 			auto a = blas::gemm<X>(u.transpose(), u, _a);
-			ensure(a.to_vector().equal({ 1, 2, 2, 5 }));;
+			ensure(a.as_vector().equal({ 1, 2, 2, 5 }));;
 
 			X _b[4];
 			auto b = blas::matrix<X>(2, 2, _b).copy(a);

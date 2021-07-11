@@ -58,7 +58,7 @@ namespace blas {
 			return true;
 		}
 
-		//!!! virtual ???
+		//!!! virtual/transparent ???
 		int index(int i, int j) const
 		{
 			if (t == CblasTrans)
@@ -79,7 +79,7 @@ namespace blas {
 		// linear copy
 		matrix& copy(int _n, const T* _v, int _dn = 1)
 		{
-			to_vector().copy(_n, _v, _dn);
+			as_vector().copy(_n, _v, _dn);
 
 			return *this;
 		}
@@ -102,7 +102,7 @@ namespace blas {
 			return *this;
 		}
 
-		vector<T> to_vector() const
+		vector<T> as_vector() const
 		{
 			return vector<T>(r * c, a, 1);
 		}
