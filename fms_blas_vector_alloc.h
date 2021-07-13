@@ -22,12 +22,12 @@ namespace blas {
 			vector<T>::v = alloc.allocate(n * abs(dn));
 		}
 		vector_alloc(int n, const T* v, int dn)
-			: vector_alloc<T>(n, dn)
+			: vector_alloc<T,A>(n, dn)
 		{
 			copy(n, v, dn);
 		}
 		vector_alloc(const vector_alloc& x)
-			: vector_alloc<T>(x.n, x.dn)
+			: vector_alloc<T,A>(x.n, x.dn)
 		{
 			copy(x);
 		}

@@ -7,16 +7,23 @@ namespace blas {
 
 	// matrix backed by array
 	template<class T, class A = std::allocator<T>>
-	class matrix_alloc : public matrix<T> {
+	struct matrix_alloc : public matrix<T> {
 		A alloc;
-	public:
+
 		using matrix<T>::copy;
 		using matrix<T>::size;
+		using matrix<T>::as_vector;
 
 		matrix_alloc(int r, int c, CBLAS_TRANSPOSE trans = CblasNoTrans)
 			: matrix<T>(r, c, nullptr, trans)
 		{
 			matrix<T>::a = alloc.allocate(r*c);
+		}
+		matrix_alloc(int r, int c, const T* _m, CBLAS_TRANSPOSE trans = CblasNoTrans)
+			: matrix<T>(r, c, nullptr, trans)
+		{
+			matrix<T>::a = alloc.allocate(r * c);
+			as_vector().copy(r * c, _m);
 		}
 		matrix_alloc(const matrix_alloc& x)
 			: matrix_alloc(x.r, x.c, x.t)
