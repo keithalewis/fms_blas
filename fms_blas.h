@@ -1,7 +1,7 @@
 // fms_blas.h - BLAS wrappers
 #pragma once
-#include "fms_blas_vector_array.h"
-#include "fms_blas_matrix_array.h"
+#include "fms_blas_vector_alloc.h"
+#include "fms_blas_matrix_alloc.h"
 #include "fms_blas3.h"
 
 #define INTEL_ONEMKL "https://software.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/"

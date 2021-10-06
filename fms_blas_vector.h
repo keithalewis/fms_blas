@@ -6,9 +6,7 @@
 #include <mkl_cblas.h>
 //#pragma warning(pop)
 #include <algorithm>
-#include <cmath>
 #include <compare>
-#include <stdexcept>
 #include <iterator>
 #include <numeric>
 #include <type_traits>
@@ -78,6 +76,10 @@ namespace blas {
 		int incr() const
 		{
 			return dn;
+		}
+		int capacity() const
+		{
+			return n * abs(dn);
 		}
 		pointer data()
 		{
