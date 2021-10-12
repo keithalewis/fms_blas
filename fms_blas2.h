@@ -134,6 +134,21 @@ namespace blas {
 
 #endif // _DEBUG
 
+	// Performs a rank - 1 update of a symmetric matrix.
+	// A = alpha x x' + A
+	template<class T>
+	inline matrix<T> syr(CBLAS_UPLO uplo, T alpha, const vector<T>& x, matrix<T>& a)
+	{
+		if constexpr (is_float<T>) {
+			cblas_ssyr(CblasRowMajor, uplo, x.size(), alpha, x.data(), x.incr(), a.data(), a.ld());
+		}
+		if constexpr (is_double<T>) {
+			cblas_dsyr(CblasRowMajor, uplo, x.size(), alpha, x.data(), x.incr(), a.data(), a.ld());
+		}
+
+		return a;
+	}
+
 #ifdef _DEBUG
 
 	template<class T>
