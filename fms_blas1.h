@@ -4,18 +4,23 @@
 
 namespace blas {
 
-	//
-// BLAS level 1
-//
+	template<class T>
+	constexpr bool is_float = std::is_same_v<std::remove_cv_t<T>, float>;
+	template<class T>
+	constexpr bool is_double = std::is_same_v<std::remove_cv_t<T>, double>;
 
-// arg max |x_i|
+	//
+	// BLAS level 1
+	//
+
+	// arg max |x_i|
 	template<class T>
 	inline auto iamax(const vector<T>& x)
 	{
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			return cblas_isamax(x.size(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			return cblas_idamax(x.size(), x.data(), x.incr());
 		}
 	}
@@ -24,10 +29,10 @@ namespace blas {
 	template<class T>
 	inline auto iamin(const vector<T>& x)
 	{
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			return cblas_isamin(x.size(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			return cblas_idamin(x.size(), x.data(), x.incr());
 		}
 	}
@@ -36,12 +41,12 @@ namespace blas {
 	template<class T>
 	inline T asum(const vector<T>& x)
 	{
-		T s = std::numeric_limits<T>::quiet_NaN();
+		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
 
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			s = cblas_sasum(x.size(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			s = cblas_dasum(x.size(), x.data(), x.incr());
 		}
 
@@ -52,10 +57,10 @@ namespace blas {
 	template<class T>
 	inline vector<T> axpy(T a, const vector<T>& x, vector<T> y)
 	{
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_daxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
 		}
 
@@ -66,12 +71,12 @@ namespace blas {
 	template<class T>
 	inline T dot(const vector<T>& x, const vector<T>& y)
 	{
-		T s = std::numeric_limits<T>::quiet_NaN();
+		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
 
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			s = cblas_sdot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			s = cblas_ddot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
 
@@ -82,12 +87,12 @@ namespace blas {
 	template<class T>
 	inline T nrm2(const vector<T>& x)
 	{
-		T s = std::numeric_limits<T>::quiet_NaN();
+		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
 
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			s = cblas_snrm2(x.size(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			s = cblas_dnrm2(x.size(), x.data(), x.incr());
 		}
 
@@ -98,10 +103,10 @@ namespace blas {
 	template<class T>
 	inline void rot(vector<T> x, vector<T> y, T c, T s)
 	{
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_srot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
 		}
 	}
@@ -109,10 +114,10 @@ namespace blas {
 	template<class T>
 	inline void swap(vector<T> x, vector<T> y)
 	{
-		if constexpr (std::is_same_v <T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_sswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
-		if constexpr (std::is_same_v <T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dswap(x.size(), x.data(), x.incr(), y.data(), y.incr());
 		}
 	}
@@ -122,10 +127,10 @@ namespace blas {
 	inline vector<T> scal(T a, vector<T> x)
 	{
 		if (a != T(1) and x.size() > 0) {
-			if constexpr (std::is_same_v <T, float>) {
+			if constexpr (is_float<T>) {
 				cblas_sscal(x.size(), a, x.data(), x.incr());
 			}
-			if constexpr (std::is_same_v <T, double>) {
+			if constexpr (is_double<T>) {
 				cblas_dscal(x.size(), a, x.data(), x.incr());
 			}
 		}

@@ -23,10 +23,10 @@ namespace blas {
 		int ldb = b.ld();
 		int ldc = c.ld();
 
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_sgemm(CblasRowMajor, a.trans(), b.trans(), m, n, k, alpha, a.data(), lda, b.data(), ldb, beta, c.data(), ldc);
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dgemm(CblasRowMajor, a.trans(), b.trans(), m, n, k, alpha, a.data(), lda, b.data(), ldb, beta, c.data(), ldc);
 		}
 
@@ -69,11 +69,11 @@ namespace blas {
 	template<class T>
 	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_strmm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dtrmm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 		}
@@ -201,11 +201,11 @@ namespace blas {
 	template<class T>
 	inline matrix<T>& trsm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& x, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_strsm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				x.rows(), x.columns(), alpha, a.data(), a.ld(), x.data(), x.ld());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dtrsm(CblasRowMajor, lr, uplo, a.trans(), diag,
 				x.rows(), x.columns(), alpha, a.data(), a.ld(), x.data(), x.ld());
 		}

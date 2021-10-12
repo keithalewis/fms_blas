@@ -172,9 +172,9 @@ namespace blas {
 		{
 			ensure(n == n_);
 
-			if constexpr (std::is_same_v<T, float>)
+			if constexpr (is_float<T>)
 				cblas_scopy(n_, v_, dn_, v, dn);
-			if constexpr (std::is_same_v<T, double>)
+			if constexpr (is_double<T>)
 				cblas_dcopy(n_, v_, dn_, v, dn);
 
 			return *this;

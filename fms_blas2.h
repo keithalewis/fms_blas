@@ -11,11 +11,11 @@ namespace blas {
 	{
 		vector<T> y(a.rows(), _y, yincr);
 
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_sgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
 				x.data(), x.incr(), beta, y.data(), y.incr());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
 				x.data(), x.incr(), beta, y.data(), y.incr());
 		}
@@ -72,10 +72,10 @@ namespace blas {
 	{
 		vector<T> x(a.rows(), _x, xincr);
 
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_strmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dtrmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 		}
 
@@ -88,10 +88,10 @@ namespace blas {
 	{
 		vector<T> x(a.rows(), _x, xincr);
 
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			cblas_strsv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			cblas_dtrsv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 		}
 

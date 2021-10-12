@@ -135,11 +135,11 @@ namespace lapack {
 	{
 		char ul = uplo == CblasUpper ? 'U' : 'L';
 
-		if constexpr (std::is_same_v<T, float>) {
+		if constexpr (is_float<T>) {
 			return LAPACKE_spotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(), 
 				a.data(), a.ld(), b.data(), b.ld());
 		}
-		if constexpr (std::is_same_v<T, double>) {
+		if constexpr (is_double<T>) {
 			return LAPACKE_dpotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(), 
 				a.data(), a.ld(), b.data(), b.ld());
 		}
