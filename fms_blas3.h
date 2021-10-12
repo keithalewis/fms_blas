@@ -261,6 +261,29 @@ namespace blas {
 	}
 #endif // _DEBUG
 
+	// Performs a Hermitian rank-k update.
+	// C = alpha A * op(A) + beta C 
+	template<class T>
+	inline matrix<T> syrk(CBLAS_UPLO uplo, const matrix<T>& a, T* _c, T alpha = 1, T beta = 0)
+	{
+		int n = a.rows();
+		int k = a.columns();
+	
+		matrix<T> c(n, n, _c);
+
+		int lda = a.ld();
+		int ldc = c.ld();
+
+		if constexpr (std::is_same_v<T, float>) {
+			cblas_ssyrk(CblasRowMajor, uplo, a.trans(), n, k, alpha, a.data(), lda, beta, c.data(), ldc);
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			cblas_dsyrk(CblasRowMajor, uplo, a.trans(), n, k, alpha, a.data(), lda, beta, c.data(), ldc);
+		}
+
+		return c;
+	}
+
 #ifdef _DEBUG
 	template<class T>
 	inline int blas3_test()
