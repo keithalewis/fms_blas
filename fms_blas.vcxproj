@@ -166,6 +166,7 @@
     <ClInclude Include="fms_blas_vector.h" />
     <ClInclude Include="fms_lapack.h" />
     <ClInclude Include="fms_blas_vector_alloc.h" />
+    <ClInclude Include="fms_trnlsp.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
