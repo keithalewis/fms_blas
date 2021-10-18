@@ -5,7 +5,7 @@
 
 namespace fms {
 
-	// min_{x\in R^n} ||y - f(x)||, f:R^n -> R^m
+	// min_{x\in R^n} ||y - f(x)||_2, f:R^n -> R^m
 	class trnslp {
 		_TRNSP_HANDLE_t handle;
 	public:
@@ -17,15 +17,15 @@ namespace fms {
 		int iter2; // maximum number of iterations of calculation of trial-step
 		double rs; // initial step bound
 		int info[6];
-		void (*f)(int n, int m, const double* x, double* fx); // function
-		void (*df)(int n, int m, const double* x, double* dfx); // Jacobian
+		void (*f)(int n, int m, const double* x, double* fx) = 0; // function
+		void (*df)(int n, int m, const double* x, double* dfx) = 0; // Jacobian
 
-		trnslp(int n, int m, double* x, int iter1, int iter2, double rs)
-			: handle(nullptr), n(n), m(m), x(x), iter1(iter1), iter2(iter2), rs(rs)
-		{
-			int ret = dtrnlsp_init(&handle, &n, &m, x, eps, &iter1, &iter2, &rs);
-			if (TR_SUCCESS != ret) {
-				throw ret;
+		trnslp(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0)
+			: handle(nullptr), n(n), m(m), x(x), iter1(iter1), iter2(iter2), rs(rs)		{
+			for (int i = 0; i < 6; i++)
+			{
+				eps[i] = 0.00001;
+				info[i] = 0;
 			}
 		}
 		trnslp(const trnslp&) = delete;
@@ -36,6 +36,21 @@ namespace fms {
 				dtrnlsp_delete(&handle);
 				MKL_Free_Buffers();
 			}
+		}
+
+		// eps stopping criteria
+		enum {
+			EPS_TRUST_REGION_AREA,
+			EPS_NORM_FX,
+			EPS_JACOBIAN,
+			EPS_TRIAL_STEP,
+			EPS_NORM_FX_DIFF,
+			EPS_TRIAL_STEP_PRECISION,
+		};
+
+		int init()
+		{
+			return dtrnlsp_init(&handle, &n, &m, x, eps, &iter1, &iter2, &rs);
 		}
 
 		int check(const double* fjac, const double* fvec)
@@ -57,9 +72,11 @@ namespace fms {
 			df = _df;
 		}
 
-		double* solver(double* fvec, double* fjac, int* rci)
+		int solver(double* fvec, double* fjac, int* rci)
 		{
-			while (TR_SUCCESS == solve(fvec, fjac, rci)) {
+			int ret;
+
+			while (TR_SUCCESS == (ret = solve(fvec, fjac, rci))) {
 				if (*rci < 0) {
 					break;
 				}
@@ -72,7 +89,12 @@ namespace fms {
 				}
 			}
 
-			return fvec;
+			return ret;
+		}
+
+		int get(int& iter, int& st_cr, double& r1, double& r2)
+		{
+			return dtrnlsp_get(&handle, &iter, &st_cr, &r1, &r2);
 		}
 #ifdef _DEBUG
 		static int test()
