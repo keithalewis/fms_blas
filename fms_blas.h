@@ -13,3 +13,24 @@
 
 #define INTEL_CBLAS(x) INTEL_ONEMKL ONEMKL_CBLAS "cblas-" x ".html"
 
+namespace blas {
+	// x . (1, 1, ...)
+	template<class X>
+	X sum(const blas::vector<X>& x)
+	{
+		double _1 = 1;
+
+		return blas::dot(x, blas::vector(x.size(), &_1, 0));
+	}
+
+	// x' A x
+	template<class X>
+	X quad(CBLAS_UPLO uplo, const blas::matrix<X>& A, const blas::vector<X>& x)
+	{
+		blas::vector_alloc<X> y(x.size()); //!!! no alloc???
+		blas::symv(uplo, A, x, y);
+
+		return blas::dot(x, y);
+	}
+
+}
