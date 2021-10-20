@@ -147,11 +147,11 @@ namespace blas {
 		}
 
 		return a;
-	}
+	}	
 
 	// performs the matrix-vector operation
 	// y = alpha A x + beta y
-	// where A is an n by n symmetric matrix
+	// where A is an n by n symmetric matrix	
 	template<class T>
 	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, blas::vector<T>& y, T alpha = 1, T beta = 0)
 	{
