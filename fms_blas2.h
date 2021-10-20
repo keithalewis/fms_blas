@@ -153,7 +153,7 @@ namespace blas {
 	// y = alpha A x + beta y
 	// where A is an n by n symmetric matrix
 	template<class T>
-	inline matrix<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, blas::vector<T>& y, T alpha = 1, T beta = 0)
+	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, blas::vector<T>& y, T alpha = 1, T beta = 0)
 	{
 		if constexpr (is_float<T>) {
 			cblas_ssymv(CblasRowMajor, uplo, x.size(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, x.data(), x.incr());
@@ -162,7 +162,7 @@ namespace blas {
 			cblas_dsymv(CblasRowMajor, uplo, x.size(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data(), y.incr());
 		}
 
-		return x;
+		return y;
 	}
 
 #ifdef _DEBUG
