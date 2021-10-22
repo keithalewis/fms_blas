@@ -6,9 +6,9 @@
 namespace blas {
 
 	// matrix backed by array
-	template<class T, class A = std::allocator<T>>
+	template<class T>
 	struct matrix_alloc : public matrix<T> {
-		A alloc;
+		std::allocator<T> alloc;
 
 		using matrix<T>::copy;
 		using matrix<T>::size;

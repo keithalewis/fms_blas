@@ -6,9 +6,9 @@
 namespace blas {
 
 	// vector backed by array
-	template<class T, class A = std::allocator<T>>
+	template<class T>
 	struct vector_alloc : public vector<T> {
-		A alloc;
+		std::allocator<T> alloc;
 		//using alloc = std::allocator_traits<A>;
 		using vector<T>::copy;
 		using vector<T>::capacity;
@@ -22,12 +22,12 @@ namespace blas {
 			vector<T>::v = alloc.allocate(n * abs(dn));
 		}
 		vector_alloc(int n, const T* v, int dn)
-			: vector_alloc<T,A>(n, dn)
+			: vector_alloc<T>(n, dn)
 		{
 			copy(n, v, dn);
 		}
 		vector_alloc(const vector_alloc& x)
-			: vector_alloc<T,A>(x.n, x.dn)
+			: vector_alloc<T>(x.n, x.dn)
 		{
 			copy(x);
 		}

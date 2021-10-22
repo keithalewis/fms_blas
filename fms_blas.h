@@ -27,10 +27,37 @@ namespace blas {
 	template<class X>
 	X quad(CBLAS_UPLO uplo, const blas::matrix<X>& A, const blas::vector<X>& x)
 	{
-		blas::vector_alloc<X> y(x.size()); //!!! no alloc???
+		int n = x.size();
+		if (n != A.rows() || n != A.columns()) {
+			return std::numeric_limits<X>::quiet_NaN();
+		}
+
+		std::remove_const_t<X> s = 0;
+
+		for (int i = 0; i < n; ++i) {
+			s += A(i, i) * x[i] * x[i];
+			if (uplo == CblasUpper) {
+				for (int j = i; j < n; ++j) {
+					s += 2 * A(i, j) * x[i] * x[j];
+				}
+			}
+			else if (uplo == CblasLower) {
+				for (int j = 0; j <= i; ++j) {
+					s += 2 * A(i, j) * x[i] * x[j];
+				}
+			}
+			else {
+				return std::numeric_limits<X>::quiet_NaN();
+			}
+		}
+
+		return s;
+		/*
+		blas::vector_alloc<std::remove_const_t<X>> y(x.size()); //!!! no alloc???
 		blas::symv(uplo, A, x, y);
 
 		return blas::dot(x, y);
+		*/
 	}
 
 }
