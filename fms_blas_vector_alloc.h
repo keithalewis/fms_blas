@@ -7,7 +7,7 @@ namespace blas {
 
 	// vector backed by array
 	template<class T>
-	struct vector_alloc : public vector<T> {
+	struct vector_alloc : public vector<std::remove_cv_t<T>> {
 		std::allocator<T> alloc;
 		//using alloc = std::allocator_traits<A>;
 		using vector<T>::copy;

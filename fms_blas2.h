@@ -79,8 +79,8 @@ namespace blas {
 	}
 
 	// Solve op(A) x = b for x where A is triangular and x = b on entry.
-	template<class T>
-	inline vector<T> trsv(CBLAS_UPLO uplo, const matrix<T>& a, vector<T>& x, CBLAS_DIAG diag = CblasNonUnit)
+	template<class T, class U>
+	inline vector<U> trsv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		if constexpr (is_float<T>) {
 			cblas_strsv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());

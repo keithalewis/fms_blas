@@ -68,8 +68,8 @@ namespace blas {
 	}
 
 	// x . y
-	template<class T>
-	inline T dot(const vector<T>& x, const vector<T>& y)
+	template<class T, class U>
+	inline T dot(const vector<T>& x, const vector<U>& y)
 	{
 		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
 

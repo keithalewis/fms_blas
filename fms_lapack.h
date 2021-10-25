@@ -168,6 +168,25 @@ namespace lapack {
 		return 0;
 	}
 
+	// Solve A * X = B for X where A is positive definite.
+	// Computes the solution to the system of linear equations with 
+	// a symmetric positive-definite coefficient matrix A and multiple right-hand sides.
+	// The columns of B are the solutions on exit.
+	template<class T>
+	inline int posv(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::matrix<T>& b)
+	{
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
+		if constexpr (is_float<T>) {
+			return LAPACKE_sposv(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
+				a.data(), a.ld(), b.data(), b.ld());
+		}
+		if constexpr (is_double<T>) {
+			return LAPACKE_dposv(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
+				a.data(), a.ld(), b.data(), b.ld());
+		}
+	}
+
 #endif // _DEBUG
 
 } // namespace lapack
