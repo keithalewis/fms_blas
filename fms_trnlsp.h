@@ -26,10 +26,10 @@ namespace fms {
 		int iter2; // maximum number of iterations of calculation of trial-step
 		double rs; // initial step bound
 		int info[6];
-		void (*f)(int n, int m, const double* x, double* fx) = 0; // function
-		void (*df)(int n, int m, const double* x, double* dfx) = 0; // Jacobian
+		void (*f)(int n, int m, const double* x, double* fx, void* data) = 0; // function
+		void (*df)(int n, int m, const double* x, double* dfx, void* data) = 0; // Jacobian
 
-		trnslp_base(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0)
+		trnslp_base(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0.1)
 			: n(n), m(m), x(x), iter1(iter1), iter2(iter2), rs(rs) 
 		{
 			for (int i = 0; i < 6; i++)
@@ -42,11 +42,11 @@ namespace fms {
 		trnslp_base& operator=(const trnslp_base&) = delete;
 		virtual ~trnslp_base()
 		{
-			MKL_Free_Buffers();
+			mkl_free_buffers();
 		}
 	};
 
-	// min_{x\in R^n} ||f(x)||_2, f:R^n -> R^m
+	// min_{x in R^n} ||f(x)||_2, f:R^n -> R^m
 	class trnslp : public trnslp_base {
 		_TRNSP_HANDLE_t handle;
 	public:
@@ -60,7 +60,7 @@ namespace fms {
 			EPS_TRIAL_STEP_PRECISION,
 		};
 
-		trnslp(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0)
+		trnslp(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0.1)
 			: trnslp_base(n, m, x, iter1, iter2, rs), handle(nullptr)
 		{
 		}
@@ -139,7 +139,7 @@ namespace fms {
 			return dtrnlsp_solve(&handle, fvec, fjac, rci);
 		}
 
-		int solver(double* fvec, double* fjac, int& rci)
+		int solver(double* fvec, double* fjac, int& rci, void* data = nullptr)
 		{
 			int ret;
 
@@ -148,11 +148,11 @@ namespace fms {
 					break;
 				}
 				if (rci == 1) {
-					f(n, m, x, fvec);
+					f(n, m, x, fvec, data);
 				}
 				else if (rci == 2) {
 					// return Jacobian
-					df(n, m, x, fjac);
+					df(n, m, x, fjac, data);
 				}
 			}
 
@@ -171,13 +171,13 @@ namespace fms {
 #endif // _DEBUG
 	};
 
-	// min_{x\in R^n} ||f(x)||_2, f:R^n -> R^m, l <= x <= u
+	// min_{x in R^n} ||f(x)||_2, f:R^n -> R^m, l <= x <= u
 	class trnslpbc : public trnslp_base {
 		_TRNSPBC_HANDLE_t handle;
 		const double* l;
 		const double* u;
 	public:
-		trnslpbc(int n, int m, double* x, const double* l, const double* u, int iter1 = 1000, int iter2 = 100, double rs = 0)
+		trnslpbc(int n, int m, double* x, const double* l, const double* u, int iter1 = 1000, int iter2 = 100, double rs = 0.1)
 			: trnslp_base(n, m, x, iter1, iter2, rs), handle(nullptr), l(l), u(u)
 		{
 		}
@@ -284,7 +284,7 @@ namespace fms {
 			return dtrnlspbc_solve(&handle, fvec, fjac, rci);
 		}
 
-		int solver(double* fvec, double* fjac, int& rci)
+		int solver(double* fvec, double* fjac, int& rci, void* data = nullptr)
 		{
 			int ret;
 
@@ -293,11 +293,11 @@ namespace fms {
 					break;
 				}
 				if (rci == 1) {
-					f(n, m, x, fvec);
+					f(n, m, x, fvec, data);
 				}
 				else if (rci == 2) {
 					// return Jacobian
-					df(n, m, x, fjac);
+					df(n, m, x, fjac, data);
 				}
 			}
 

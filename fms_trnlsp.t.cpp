@@ -10,10 +10,10 @@ int test_fms_trnlsp()
 	{
 		double x = 1;
 		trnslp p(1, 1, &x);
-		p.f = [](int, int, const double* x, double* fx) {
+		p.f = [](int, int, const double* x, double* fx, void*) {
 			*fx = (*x) * (*x) - 2;
 		};
-		p.df = [](int, int, const double* x, double* dfx) {
+		p.df = [](int, int, const double* x, double* dfx, void*) {
 			*dfx = 2 * *x;
 		};
 		ret = p.init();
@@ -45,11 +45,11 @@ int test_fms_trnlspbc()
 		double l[2] = { 0, 0 };
 		double u[2] = { 10, 10 };
 		trnslpbc p(2, 2, x, l, u);
-		p.f = [](int, int, const double* x, double* fx) {
+		p.f = [](int, int, const double* x, double* fx, void*) {
 			fx[0] = x[0] + 2 * x[1];
 			fx[1] = 3 * x[0] + 4 * x[1];
 		};
-		p.df = [](int, int, const double*, double* dfx) {
+		p.df = [](int, int, const double*, double* dfx, void*) {
 			dfx[0] = 1; // df[0]/dx[0]
 			dfx[1] = 3; // df[1]/dx[0]
 			dfx[2] = 2; // df[0]/dx[1]

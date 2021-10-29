@@ -6,8 +6,8 @@
 namespace blas {
 
 	// y = alpha op(A)*x + beta y
-	template<class T>
-	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, vector<T>& y, T alpha = T(1), T beta = T(0))
+	template<class T, class U, class V>
+	inline vector<V> gemv(const matrix<T>& a, const vector<U>& x, vector<V>& y, V alpha = V(1), V beta = V(0))
 	{
 		if constexpr (is_float<T>) {
 			cblas_sgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),

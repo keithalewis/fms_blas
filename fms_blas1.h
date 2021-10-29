@@ -54,8 +54,8 @@ namespace blas {
 	}
 
 	// y = a x + y
-	template<class T>
-	inline vector<T> axpy(T a, const vector<T>& x, vector<T> y)
+	template<class V, class T, class U>
+	inline vector<U> axpy(V a, const vector<T>& x, vector<U> y)
 	{
 		if constexpr (is_float<T>) {
 			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
