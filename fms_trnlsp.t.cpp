@@ -41,7 +41,7 @@ int test_fms_trnlspbc()
 {
 	int ret = 0;
 	{
-		double x[2] = { 1, 1 };
+		double x[2] = { -1, 1 };
 		double l[2] = { 0, 0 };
 		double u[2] = { 10, 10 };
 		trnslpbc p(2, 2, x, l, u);

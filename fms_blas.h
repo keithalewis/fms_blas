@@ -24,8 +24,8 @@ namespace blas {
 	}
 
 	// x' A x
-	template<class X>
-	X quad(CBLAS_UPLO uplo, const blas::matrix<X>& A, const blas::vector<X>& x)
+	template<class X, class Y>
+	X quad(CBLAS_UPLO uplo, const blas::matrix<X>& A, const blas::vector<Y>& x)
 	{
 		int n = x.size();
 		if (n != A.rows() || n != A.columns()) {
@@ -52,12 +52,6 @@ namespace blas {
 		}
 
 		return s;
-		/*
-		blas::vector_alloc<std::remove_const_t<X>> y(x.size()); //!!! no alloc???
-		blas::symv(uplo, A, x, y);
-
-		return blas::dot(x, y);
-		*/
 	}
 
 }

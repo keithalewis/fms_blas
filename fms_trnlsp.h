@@ -26,8 +26,8 @@ namespace fms {
 		int iter2; // maximum number of iterations of calculation of trial-step
 		double rs; // initial step bound
 		int info[6];
-		void (*f)(int n, int m, const double* x, double* fx, void* data) = 0; // function
-		void (*df)(int n, int m, const double* x, double* dfx, void* data) = 0; // Jacobian
+		void (*f)(int n, int m, double* x, double* fx, void* data) = 0; // function
+		void (*df)(int n, int m, double* x, double* dfx, void* data) = 0; // Jacobian
 
 		trnslp_base(int n, int m, double* x, int iter1 = 1000, int iter2 = 100, double rs = 0.1)
 			: n(n), m(m), x(x), iter1(iter1), iter2(iter2), rs(rs) 
