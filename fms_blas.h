@@ -1,5 +1,6 @@
 // fms_blas.h - BLAS wrappers
 #pragma once
+#pragma warning(disable: 26812)
 #include "fms_blas_vector_alloc.h"
 #include "fms_blas_matrix_alloc.h"
 #include "fms_blas3.h"
@@ -14,14 +15,84 @@
 #define INTEL_CBLAS(x) INTEL_ONEMKL ONEMKL_CBLAS "cblas-" x ".html"
 
 namespace blas {
+
+	// n 1's
+	template<class X>
+	inline constexpr blas::vector<X> one(int n)
+	{
+		static X one = 1;
+
+		return blas::vector<X>(n, &one, 0);
+	}
+
 	// x . (1, 1, ...)
 	template<class X>
 	X sum(const blas::vector<X>& x)
 	{
 		double _1 = 1;
 
-		return blas::dot(x, blas::vector(x.size(), &_1, 0));
+		return blas::dot(x, one<X>(x.size()));
 	}
+
+	// pack lower triangle of a into l
+	inline void packl(int n, const double* a, double* l)
+	{
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j <= i; ++j) {
+				l[(i * (i + 1)) / 2 + j] = a[n * i + j];
+			}
+		}
+	}
+
+	// unpack l into lower triangle of a
+	inline void unpackl(int n, const double* l, double* a)
+	{
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j <= i; ++j) {
+				a[n * i + j] = l[(i * (i + 1)) / 2 + j];
+			}
+		}
+	}
+	// pack upper triangle of a into l
+	inline void packu(int n, const double* a, double* l)
+	{
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j <= i; ++j) {
+				l[(i * (i + 1)) / 2 + j] = a[i + n * j];
+			}
+		}
+	}
+	// unpack l into upper triangle of a
+	inline void unpacku(int n, const double* l, double* a)
+	{
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j <= i; ++j) {
+				a[i + n * j] = l[(i * (i + 1)) / 2 + j];
+			}
+		}
+	}
+	// unpack l into a
+	inline void unpack(int n, const double* l, double* a)
+	{
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j <= i; ++j) {
+				a[j + n * i] = a[i + n * j] = l[(i * (i + 1)) / 2 + j];
+			}
+		}
+	}
+
+	// x . y
+	inline double dot(size_t n, const double* x, const double* y, size_t stride = 1)
+	{
+		double s = 0;
+
+		for (size_t i = 0; i < n; ++i) {
+			s += x[i] * y[i * stride];
+		}
+
+		return s;
+	}
+
 
 	// x' A x
 	template<class X, class Y>

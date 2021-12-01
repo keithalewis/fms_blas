@@ -26,10 +26,13 @@ namespace blas {
 		{
 			copy(n, v, dn);
 		}
-		vector_alloc(const vector_alloc& x)
-			: vector_alloc<T>(x.n, x.dn)
+		vector_alloc(const vector<T>& x)
+			: vector_alloc<T>(x.size(), x.data(), x.incr())
 		{
-			copy(x);
+		}
+		vector_alloc(const vector_alloc<T>& x)
+			: vector_alloc<T>(x.n, x.v, x.dn)
+		{
 		}
 		vector_alloc& operator=(const vector_alloc& x)
 		{

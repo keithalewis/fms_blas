@@ -20,6 +20,7 @@ namespace lapack {
 	template<>
 	struct cblas_uplo<CblasLower> { static const char uplo = 'L'; };
 
+	// Computes the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix.
 	// a = u'u if upper, a = ll' if lower
 	template<class X>
 	inline int potrf(CBLAS_UPLO uplo, blas::matrix<X>& a)
@@ -33,6 +34,63 @@ namespace lapack {
 		}
 		if constexpr (std::is_same_v<X, double>) {
 			ret = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, ul, a.rows(), a.data(), a.ld());
+		}
+
+		return ret;
+	}
+
+	// Computes the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using packed storage.
+	// A = U' U for real data, if uplo='U'
+	// A = L L' for real data, if uplo='L'
+	// where L is a lower triangular matrix and U is upper triangular.
+	template<class X>
+	inline int pptrf(CBLAS_UPLO uplo, blas::matrix<X>& a)
+	{
+		int ret = INT_MAX;
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
+		if constexpr (std::is_same_v<X, float>) {
+			ret = LAPACKE_spptrf(LAPACK_ROW_MAJOR, ul, a.rows(), a.data());
+		}
+		if constexpr (std::is_same_v<X, double>) {
+			ret = LAPACKE_dpptrf(LAPACK_ROW_MAJOR, ul, a.rows(), a.data());
+		}
+
+		return ret;
+	}
+	// Solves a system of linear equations with a packed Cholesky-factored symmetric (Hermitian) positive-definite coefficient matrix.
+	// A X = B
+	// The columns of B are the solutions on exit.
+	template<class T, class U>
+	inline int pptrs(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::matrix<U>& b)
+	{
+		int ret = INT_MAX;
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
+		if constexpr (std::is_same_v<T, float>) {
+			ret = LAPACKE_spptrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
+				a.data(), b.data(), b.ld());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			ret = LAPACKE_dpptrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
+				a.data(), b.data(), b.ld());
+		}
+
+		return ret;
+	}
+	template<class T, class U>
+	inline int pptrs(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::vector<U>& b)
+	{
+		int ret = INT_MAX;
+		char ul = uplo == CblasUpper ? 'U' : 'L';
+
+		if constexpr (std::is_same_v<T, float>) {
+			ret = LAPACKE_spptrs(LAPACK_ROW_MAJOR, ul, a.rows(), 1,
+				a.data(), b.data(), b.size());
+		}
+		if constexpr (std::is_same_v<T, double>) {
+			ret = LAPACKE_dpptrs(LAPACK_ROW_MAJOR, ul, a.rows(), 1,
+				a.data(), b.data(), b.size());
 		}
 
 		return ret;

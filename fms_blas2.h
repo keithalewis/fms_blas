@@ -64,10 +64,14 @@ namespace blas {
 
 #endif // _DEBUG
 
+	// Computes a matrix-vector product using a triangular packed matrix.
 	// x = op(A)*x where A is triangular
-	template<class T>
-	inline vector<T> trmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<T>& x, CBLAS_DIAG diag = CblasNonUnit)
+	template<class T, class U>
+	inline vector<U> trmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
 	{
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
+
 		if constexpr (is_float<T>) {
 			cblas_strmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 		}
@@ -128,6 +132,24 @@ namespace blas {
 	}
 
 #endif // _DEBUG
+
+	// Computes a matrix-vector product using a triangular packed matrix.
+	// x = op(A)*x where A is triangular
+	template<class T, class U>
+	inline vector<U> tpmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
+	{
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
+
+		if constexpr (is_float<T>) {
+			cblas_stpmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
+		}
+		if constexpr (is_double<T>) {
+			cblas_dtpmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
+		}
+
+		return x;
+	}
 
 	// Performs a rank - 1 update of a symmetric matrix.
 	// A = alpha x x' + A

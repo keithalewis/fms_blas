@@ -25,10 +25,13 @@ namespace blas {
 			matrix<T>::a = alloc.allocate(r * c);
 			as_vector().copy(r * c, _m);
 		}
+		matrix_alloc(const matrix<T>& x)
+			: matrix_alloc(x.rows(), x.columns(), x.data())
+		{
+		}
 		matrix_alloc(const matrix_alloc& x)
 			: matrix_alloc(x.r, x.c, x.t)
 		{
-			copy(x);
 		}
 		matrix_alloc& operator=(const matrix_alloc& x)
 		{
