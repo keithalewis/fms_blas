@@ -29,8 +29,6 @@ namespace blas {
 	template<class X>
 	X sum(const blas::vector<X>& x)
 	{
-		double _1 = 1;
-
 		return blas::dot(x, one<X>(x.size()));
 	}
 
