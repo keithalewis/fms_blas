@@ -14,23 +14,23 @@ namespace blas {
 		using matrix<T>::size;
 		using matrix<T>::as_vector;
 
-		matrix_alloc(int r, int c, CBLAS_TRANSPOSE trans = CblasNoTrans)
-			: matrix<T>(r, c, nullptr, trans)
+		matrix_alloc(int r, int c)
+			: matrix<T>(r, c, nullptr)
 		{
 			matrix<T>::a = alloc.allocate(r*c);
 		}
-		matrix_alloc(int r, int c, const T* _m, CBLAS_TRANSPOSE trans = CblasNoTrans)
-			: matrix<T>(r, c, nullptr, trans)
+		matrix_alloc(int r, int c, const T* _a, CBLAS_TRANSPOSE t = CblasNoTrans)
+			: matrix<T>(r, c, nullptr, t)
 		{
 			matrix<T>::a = alloc.allocate(r * c);
-			as_vector().copy(r * c, _m);
+			copy(r * c, _a);
 		}
 		matrix_alloc(const matrix<T>& x)
-			: matrix_alloc(x.rows(), x.columns(), x.data())
+			: matrix_alloc(x.rows(), x.columns(), x.data(), x.trans())
 		{
 		}
 		matrix_alloc(const matrix_alloc& x)
-			: matrix_alloc(x.r, x.c, x.t)
+			: matrix_alloc(x.r, x.c, x.a, x.t)
 		{
 		}
 		matrix_alloc& operator=(const matrix_alloc& x)
@@ -43,8 +43,18 @@ namespace blas {
 
 			return *this;
 		}
-		matrix_alloc(matrix_alloc&&) = default;
-		matrix_alloc& operator=(matrix_alloc&&) = default;
+		matrix_alloc(matrix_alloc&& x) noexcept
+			: matrix<T>(x)
+		{
+			x.operator=(matrix<T>{});
+		}
+		matrix_alloc& operator=(matrix_alloc&& x)
+		{
+			matrix::operator=(x);
+			x.operator=(matrix<T>{});
+
+			return *this;
+		}
 		~matrix_alloc()
 		{ 
 			alloc.deallocate(matrix<T>::a, size());

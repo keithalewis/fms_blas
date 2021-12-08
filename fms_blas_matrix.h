@@ -21,6 +21,10 @@ namespace blas {
 		matrix& operator=(const matrix&) = default;
 		virtual ~matrix()
 		{ }
+		// column vector so ld() works
+		matrix(const vector<T>& v)
+			: matrix(v.size(), 1, v.data())
+		{ }
 
 		explicit operator bool() const
 		{
@@ -38,22 +42,6 @@ namespace blas {
 				for (int j = 0; j < columns(); ++j)
 					if (operator()(i, j) != m(i, j))
 						return false;
-
-			return true;
-		}
-		// equal to upper or lower component of m only
-		bool equal(const matrix& m, CBLAS_UPLO ul) const
-		{
-			if (rows() != m.rows() or columns() != m.columns())
-				return false;
-
-			for (int i = 0; i < rows(); ++i) {
-				int jlo = (ul == CblasUpper) ? i : 0;
-				int jhi = (ul == CblasLower) ? i : columns();
-				for (int j = jlo; j < jhi; ++j)
-					if (operator()(i, j) != m(i, j))
-						return false;
-			}
 
 			return true;
 		}
@@ -94,10 +82,9 @@ namespace blas {
 		}
 		matrix& copy(const matrix<T>& m)
 		{
-			ensure(rows() == m.rows() and columns() == m.columns());
+			ensure(rows() == m.rows() and columns() == m.columns() and trans() == m.trans());
 
-			for (int i = 0; i < rows(); ++i)
-				row(i).copy(m.row(i));
+			copy(m.size(), m.data());
 
 			return *this;
 		}

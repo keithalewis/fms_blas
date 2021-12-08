@@ -59,6 +59,8 @@ namespace blas {
 
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
+		vector(vector&&) = default;
+		vector& operator=(vector&&) = default;
 		virtual ~vector()
 		{ }
 

@@ -44,8 +44,18 @@ namespace blas {
 
 			return *this;
 		}
-		vector_alloc(vector_alloc &&) = default;
-		vector_alloc& operator=(vector_alloc &&) = default;
+		vector_alloc(vector_alloc&& x) noexcept
+			: vector<T>(x)
+		{
+			x.operator=(vector<T>{});
+		}
+		vector_alloc& operator=(vector_alloc&& x)
+		{
+			vector<T>::operator=(x);
+			x.operator=(vector<T>{});
+
+			return *this;
+		}
 		~vector_alloc()
 		{
 			alloc.deallocate(vector<T>::v, capacity());
