@@ -313,5 +313,18 @@ namespace blas {
 			: matrix<T>(m), uplo(uplo), diag(diag)
 		{ }
 	};
+	/*
+	template<class T>
+	struct packed_matrix : public vector<T> {
+		CBLAS_UPLO uplo;
+	public:
+		packed_matrix(const matrix<T>& m, CBLAS_UPLO uplo)
+			: vector<T>((m.rows() * (m.rows() + 1)) / 2, m.data()), uplo(uplo)
+		{
+			ensure(m.rows() == m.columns());
+			blas::pack(uplo, m.row(), m.data(), vector<T>::a);
+		}
+	};
+	*/
 
 } // namespace blas
