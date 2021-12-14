@@ -14,6 +14,9 @@
 
 namespace blas {
 
+	constexpr decltype(cblas_sdot)* sd = cblas_sdot;
+
+
 #pragma warning(push)
 #pragma warning(disable: 4724)
 	// mod returning in range [0, y) 

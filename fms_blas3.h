@@ -7,28 +7,41 @@ namespace blas {
 	// BLAS level 3
 	// 
 
+#define BLAS_MM(X) \
+	X(ge) \
+	X(tr) \
+
+	template<class T>
+	struct mm {
+	};
+
+#define BLAS_MM_(T, F) static constexpr decltype(cblas_##T##F##mm)* F = cblas_##T##F##mm;
+
+#define BLAS_MMS(F) BLAS_MM_(s, F)
+	template<>
+	struct mm<float> {
+		BLAS_MM(BLAS_MMS)
+	};
+#undef BLAS_MMS
+
+#define BLAS_MMD(F) BLAS_MM_(d, F)
+	template<>
+	struct mm<double> {
+		BLAS_MM(BLAS_MMD)
+	};
+#undef BLAS_MMD
+
+#undef BLAS_MM_
+
 	// general matrix multiplication using preallocated memory in _c
 	// C = alpha op(A) * op(B) + beta C 
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-3-routines/cblas-gemm.html#cblas-gemm
 	template<class T>
-	inline matrix<T> gemm(const matrix<T>& a, const matrix<T>& b, T* _c, T alpha = 1, T beta = 0)
+	inline matrix<T> gemm(const matrix<T>& a, const matrix<T>& b, matrix<T> c, T alpha = 1, T beta = 0)
 	{
-		int m = a.rows();
-		int k = a.columns();
-		ensure(k == b.rows());
-		int n = b.columns();
+		ensure(a.columns() == b.rows());
 
-		matrix<T> c(m, n, _c);
-
-		int lda = a.ld();
-		int ldb = b.ld();
-		int ldc = c.ld();
-
-		if constexpr (is_float<T>) {
-			cblas_sgemm(CblasRowMajor, a.trans(), b.trans(), m, n, k, alpha, a.data(), lda, b.data(), ldb, beta, c.data(), ldc);
-		}
-		if constexpr (is_double<T>) {
-			cblas_dgemm(CblasRowMajor, a.trans(), b.trans(), m, n, k, alpha, a.data(), lda, b.data(), ldb, beta, c.data(), ldc);
-		}
+		mm<T>::ge(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 
 		return c;
 	}
@@ -45,18 +58,18 @@ namespace blas {
 			T _c[6];
 			matrix<T> c(2, 3, _c);
 			identity_matrix<2, T> id2;
-			c = gemm<T>(id2, a, c.data());
+			c = gemm<T>(id2, a, c);
 			ensure(c.equal(a));
 			std::fill(c.begin(), c.end(), T(-1));
 
 			identity_matrix<3, T> id3;
-			c = gemm<T>(a, id3, c.data());
+			c = gemm<T>(a, id3, c);
 			ensure(c.equal(a));
 
-			c = gemm<T>(id3, a.transpose(), c.data());
+			c = gemm<T>(id3, a.transpose(), c);
 			ensure(c.equal(a.transpose()));
 
-			c = gemm<T>(a.transpose(), id2, c.data());
+			c = gemm<T>(a.transpose(), id2, c);
 			ensure(c.equal(a.transpose()));
 		}
 
@@ -65,28 +78,23 @@ namespace blas {
 
 #endif // _DEBUG
 
+	// Computes a matrix-matrix product where one input matrix is triangular.
 	// b = alpha op(a)*b or b = alpha b*op(a) using b in place
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-3-routines/cblas-trmm.html
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T> b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		if constexpr (is_float<T>) {
-			cblas_strmm(CblasRowMajor, lr, uplo, a.trans(), diag,
-				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
-		}
-		if constexpr (is_double<T>) {
-			cblas_dtrmm(CblasRowMajor, lr, uplo, a.trans(), diag,
-				b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
-		}
+		mm<T>::tr(CblasRowMajor, lr, uplo, a.trans(), diag,	b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 
 		return b;
 	}
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T> b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		return trmm(CblasLeft, uplo, a, b, alpha, diag);
 	}
 	template<class T>
-	inline matrix<T>& trmm(matrix<T>& b, CBLAS_UPLO uplo, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(matrix<T> b, CBLAS_UPLO uplo, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		return trmm(CblasRight, uplo, a, b, alpha, diag);
 	}

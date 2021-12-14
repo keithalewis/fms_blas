@@ -81,7 +81,7 @@ namespace lapack {
 
 			T a1[] = { 1, 2, 2, 13 };
 			T c[4];
-			blas::matrix<T> c_ = blas::gemm(a_, blas::matrix(2, 2, a1), c);
+			blas::matrix<T> c_ = blas::gemm(a_, blas::matrix(2, 2, a1), blas::matrix(2, 2, c));
 			assert(eq(1, c[0], 3*eps));
 			assert(eq(0, c[1], 3*eps));
 			assert(eq(0, c[2], eps));
@@ -112,7 +112,7 @@ namespace lapack {
 
 			T a1[] = { 1, 2, 2, 13 };
 			T c[4];
-			blas::matrix<T> c_ = blas::gemm(a_, blas::matrix(2, 2, a1), c);
+			blas::matrix<T> c_ = blas::gemm(a_, blas::matrix(2, 2, a1), blas::matrix(2, 2, c));
 			assert(eq(1, c[0], 3 * eps));
 			assert(eq(0, c[1], 3 * eps));
 			assert(eq(0, c[2], eps));

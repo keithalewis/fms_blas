@@ -5,36 +5,78 @@
 
 namespace blas {
 
+#define BLAS_MV(X) \
+	X(ge) \
+	X(tr) \
+	X(tp) \
+	X(tb) \
+	X(sy) \
+
+#define BLAS_MV_(T, F) static constexpr decltype(cblas_##T##F##mv)* F = cblas_##T##F##mv;
+
 	template<class T>
 	struct mv {
-		//static const decltype(cblas_sgemv)* ge;
 	};
+
 	template<>
 	struct mv<float> {
-		static constexpr decltype(cblas_sgemv)* ge = cblas_sgemv;
+#define BLAS_MVS(F) BLAS_MV_(s, F)
+		BLAS_MV(BLAS_MVS)
+#undef BLAS_MVS
 	};
+
 	template<>
 	struct mv<double> {
-		static constexpr decltype(cblas_dgemv)* ge = cblas_dgemv;
+#define BLAS_MVD(F) BLAS_MV_(d, F)
+		BLAS_MV(BLAS_MVD)
+#undef BLAS_MVD
 	};
+
+#undef BLAS_MV_
+#undef BLAS_MV
 
 	// Computes a matrix-vector product using a general matrix.
 	// y = alpha op(A)*x + beta y
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-gemv.html
-	template<class T, class U, class V>
-	inline vector<V> gemv(const matrix<T>& a, const vector<U>& x, vector<V>& y, V alpha = V(1), V beta = V(0))
+	template<class T>
+	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = T(1), T beta = T(0))
 	{
-		if constexpr (is_float<T>) {
-			cblas_sgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
-				x.data(), x.incr(), beta, y.data(), y.incr());
-		}
-		if constexpr (is_double<T>) {
-			cblas_dgemv(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(),
-				x.data(), x.incr(), beta, y.data(), y.incr());
-		}
+		ensure(a.rows() == y.size());
+		ensure(a.columns() == x.size());
+
+		mv<T>::ge(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data(), y.incr());
 
 		return y;
 	}
+#ifdef _DEBUG
+	template<class T>
+	inline int gemv_test()
+	{
+		{
+			T a[] = { 1,2,3,
+					  4,5,6 };
+			T x[] = { 1, 2, 3 };
+			T y[2];
+
+			auto y_ = gemv(matrix(2, 3, a), vector(x), vector(y));
+			assert(1 * 1 + 2 * 2 + 3 * 3 == y[0]);
+			assert(4 * 1 + 5 * 2 + 6 * 3 == y[1]);
+		}
+		{
+			T a[] = { 1,2,3,
+					  4,5,6 };
+			T x[] = { 1, 2 };
+			T y[3];
+
+			auto y_ = gemv(matrix(2, 3, a).transpose(), vector(x), vector(y));
+			assert(1 * 1 + 4 * 1 == y[0]);
+			assert(2 * 1 + 5 * 2 == y[1]);
+			assert(3 * 1 + 6 * 2 == y[2]);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 	// scale rows of m by v
 	template<class T>
@@ -88,12 +130,7 @@ namespace blas {
 		ensure(a.rows() == a.columns());
 		ensure(a.rows() == x.size());
 
-		if constexpr (is_float<T>) {
-			cblas_strmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			cblas_dtrmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
-		}
+		mv<T>::tr(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
 
 		return x;
 	}
@@ -154,18 +191,28 @@ namespace blas {
 	// Computes a matrix-vector product using a triangular packed matrix.
 	// x = op(A)*x 
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-tpmv.html
-	template<class T, class U>
-	inline vector<U> tpmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
+	template<class T>
+	inline vector<T> tpmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<T> x, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
 		ensure(a.rows() == x.size());
 
-		if constexpr (is_float<T>) {
-			cblas_stpmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			cblas_dtpmv(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
-		}
+		mv<T>::tp(CblasRowMajor, uplo, a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
+
+		return x;
+	}
+
+	// Computes a matrix-vector product for a symmetric matrix.
+	// y = alpha A x + beta y
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-symv.html
+	template<class T>
+	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = 1, T beta = 0)
+	{
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
+		ensure(x.size() == y.size());
+
+		mv<T>::sy(CblasRowMajor, uplo, a.rows(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data().y.incr());
 
 		return x;
 	}
@@ -183,23 +230,8 @@ namespace blas {
 		}
 
 		return a;
-	}	
-
-	// performs the matrix-vector operation
-	// y = alpha A x + beta y
-	// where A is an n by n symmetric matrix	
-	template<class T>
-	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, blas::vector<T>& y, T alpha = 1, T beta = 0)
-	{
-		if constexpr (is_float<T>) {
-			cblas_ssymv(CblasRowMajor, uplo, x.size(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			cblas_dsymv(CblasRowMajor, uplo, x.size(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data(), y.incr());
-		}
-
-		return y;
 	}
+
 
 #ifdef _DEBUG
 
@@ -207,6 +239,7 @@ namespace blas {
 	inline int blas2_test()
 	{
 		scal_test<T>();
+		gemv_test<T>();
 		trsv_test<T>();
 
 		return 0;

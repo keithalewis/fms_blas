@@ -138,7 +138,7 @@ namespace blas {
 		// leading dimension
 		int ld() const
 		{
-			return c;
+			return c; // (t == CblasNoTrans) ? c : r;
 		}
 
 		matrix transpose() const
