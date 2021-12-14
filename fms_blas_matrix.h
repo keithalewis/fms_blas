@@ -19,6 +19,8 @@ namespace blas {
 		{ }
 		matrix(const matrix&) = default;
 		matrix& operator=(const matrix&) = default;
+		matrix(matrix&&) = default;
+		matrix& operator=(matrix&&) = default;
 		virtual ~matrix()
 		{ }
 		// column vector so ld() works
@@ -64,6 +66,13 @@ namespace blas {
 			return a[index(i, j)];
 		}
 
+		matrix& fill(T x)
+		{
+			as_vector().fill(x);
+
+			return *this;
+		}
+
 		// linear copy
 		matrix& copy(int _n, const T* _v, int _dn = 1)
 		{
@@ -92,6 +101,14 @@ namespace blas {
 		vector<T> as_vector() const
 		{
 			return vector<T>(r * c, a, 1);
+		}
+		matrix& reshape(int r_, int c_)
+		{
+			// ensure (r_*c_ < r*c);
+			r = r_;
+			c = c_;
+
+			return *this;
 		}
 
 		int rows() const
@@ -269,62 +286,59 @@ namespace blas {
 		}
 
 #endif // _DEBUG
+
 	}; // matrix
 
-	template<std::size_t N, typename T>
-	class identity_matrix : public matrix<T>
-	{
-		inline static T _id[N * N];
-	public:
-		identity_matrix()
-			: matrix<T>(N, N)
-		{
-			matrix<T>::a = _id;
-			if (_id[0] != T(1))
-				for (int i = 0; i < N; ++i)
-					matrix<T>::operator()(i, i) = T(1);
-		}
-
-#ifdef _DEBUG
-		static int test()
-		{
-			{
-				identity_matrix<3, T> id;
-				ensure(id.rows() == 3);
-				ensure(id.columns() == 3);
-				for (int i = 0; i < 3; ++i) {
-					for (int j = 0; j < 3; ++j) {
-						ensure(id(i, j) == T(i == j));
-					}
-				}
-			}
-
-			return 0;
-		}
-#endif // _DEBUG
-	}; // identity_matrix
-
+	// general rectangular matrix
 	template<class T>
-	struct triangular_matrix : public matrix<T> {
-		CBLAS_UPLO uplo;
-		CBLAS_DIAG diag;
+	using ge = matrix<T>;
+
+	// triangular packed
+	template<class T>
+	struct tp : public matrix<T> {
+		CBLAS_UPLO ul;
+		CBLAS_DIAG d;
 	public:
-		triangular_matrix(const matrix<T>& m, CBLAS_UPLO uplo, CBLAS_DIAG diag)
-			: matrix<T>(m), uplo(uplo), diag(diag)
+		tp(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
+			: matrix<T>(m), ul(ul), d(d)
 		{ }
-	};
-	/*
-	template<class T>
-	struct packed_matrix : public vector<T> {
-		CBLAS_UPLO uplo;
-	public:
-		packed_matrix(const matrix<T>& m, CBLAS_UPLO uplo)
-			: vector<T>((m.rows() * (m.rows() + 1)) / 2, m.data()), uplo(uplo)
+		CBLAS_UPLO uplo() const
 		{
-			ensure(m.rows() == m.columns());
-			blas::pack(uplo, m.row(), m.data(), vector<T>::a);
+			return ul;
+		}
+		CBLAS_DIAG diag() const
+		{
+			return d;
+		}
+		int index(int i, int j) const
+		{
+			return indexp(i, j);
 		}
 	};
-	*/
+	
+	// triangular
+	template<class T>
+	struct tr : public matrix<T> {
+		CBLAS_UPLO ul;
+		CBLAS_DIAG d;
+	public:
+		tr(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
+			: matrix<T>(m), ul(ul), d(d)
+		{
+		}
+		CBLAS_UPLO uplo() const
+		{
+			return ul;
+		}
+		CBLAS_DIAG diag() const
+		{
+			return d;
+		}
+		int index(int i, int j) const
+		{
+			return indexp(i, j);
+		}
 
+	};
+	
 } // namespace blas

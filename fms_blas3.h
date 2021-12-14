@@ -57,20 +57,26 @@ namespace blas {
 
 			T _c[6];
 			matrix<T> c(2, 3, _c);
-			identity_matrix<2, T> id2;
-			c = gemm<T>(id2, a, c);
+			auto id2 = identity<T>(2);
+			c = gemm(id2, a, c);
 			ensure(c.equal(a));
+
+			auto id3 = identity<T>(3);
 			std::fill(c.begin(), c.end(), T(-1));
-
-			identity_matrix<3, T> id3;
-			c = gemm<T>(a, id3, c);
+			c = gemm(a, id3, c);
 			ensure(c.equal(a));
 
-			c = gemm<T>(id3, a.transpose(), c);
+			c.reshape(3, 2);
+			std::fill(c.begin(), c.end(), T(-1));
+			c = gemm(id3, a.transpose(), c);
 			ensure(c.equal(a.transpose()));
 
-			c = gemm<T>(a.transpose(), id2, c);
+			c.reshape(3, 2);
+			std::fill(c.begin(), c.end(), T(-1));
+			c = gemm(a.transpose(), id2, c);
 			ensure(c.equal(a.transpose()));
+
+			//c = id2 * a;
 		}
 
 		return 0;
@@ -100,12 +106,12 @@ namespace blas {
 	}
 
 	template<class T>
-	inline matrix<T>& trmm(const triangular_matrix<T>& a, matrix<T>& b, T alpha = 1)
+	inline matrix<T>& trmm(const tr<T>& a, matrix<T>& b, T alpha = 1)
 	{
 		return trmm(CblasLeft, a.uplo, a, b, alpha, a.diag);
 	}
 	template<class T>
-	inline matrix<T>& trmm(matrix<T>& b, const triangular_matrix<T>& a, T alpha = 1)
+	inline matrix<T>& trmm(matrix<T>& b, const tr<T>& a, T alpha = 1)
 	{
 		return trmm(CblasRight, a.uplo, a, b, alpha, a.diag);
 	}
@@ -233,13 +239,13 @@ namespace blas {
 		return trsm(CblasRight, uplo, a, x, alpha, diag);
 	}
 	template<class T>
-	inline matrix<T>& trsm(const triangular_matrix<T>& a, matrix<T>& x, T alpha = 1)
+	inline matrix<T>& trsm(const tr<T>& a, matrix<T>& x, T alpha = 1)
 	{
 		return trsm(CblasLeft, a.uplo, a, x, alpha, a.diag);
 	}
 	// solve X*op(A) = B
 	template<class T>
-	inline matrix<T>& trsm(matrix<T>& x, const triangular_matrix<T>& a, T alpha = 1)
+	inline matrix<T>& trsm(matrix<T>& x, const tr<T>& a, T alpha = 1)
 	{
 		return trsm(CblasRight, a.uplo, a, x, alpha, a.diag);
 	}
@@ -306,3 +312,11 @@ namespace blas {
 
 
 } // namespace blas
+
+template<class T>
+inline auto operator*(const blas::matrix<T>& a, const blas::matrix<T>& b)
+{
+	blas::matrix_alloc<T> c(a.rows(), b.columns());
+	
+	return blas::gemm(a, b, c);
+}

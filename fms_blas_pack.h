@@ -4,13 +4,29 @@
 
 namespace blas {
 
+	// index into packed matrix
+	inline int indexp(int i, int j)
+	{
+		return (i * (i + 1)) / 2 + j;
+	}
+	// index into upper triangle of rectangular matrix
+	inline int indexu(int i, int j, int n)
+	{
+		return i + n * j;
+	}
+	// index into lower triangle of rectangular matrix
+	inline int indexl(int i, int j, int n)
+	{
+		return n * i + j;
+	}
+
 	// pack upper triangle of n x n matrix a into l
 	template<class T>
 	inline void packu(int n, const T* a, T* l)
 	{
 		for (int i = 0; i < n; ++i) {
 			for (int j = 0; j <= i; ++j) {
-				l[(i * (i + 1)) / 2 + j] = a[i + n * j];
+				l[indexp(i, j)] = a[indexu(i, j, n)];
 			}
 		}
 	}

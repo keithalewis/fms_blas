@@ -6,9 +6,9 @@
 namespace blas {
 
 	// matrix backed by array
-	template<class T>
+	template<class T, class A = std::allocator<T>>
 	struct matrix_alloc : public matrix<T> {
-		std::allocator<T> alloc;
+		inline static A alloc = A{};
 
 		using matrix<T>::copy;
 		using matrix<T>::size;
@@ -33,10 +33,23 @@ namespace blas {
 			: matrix_alloc(x.r, x.c, x.a, x.t)
 		{
 		}
-		matrix_alloc& operator=(const matrix_alloc& x)
+		matrix_alloc& operator=(const matrix<T>& x)
 		{
 			if (this != &x) {
 				alloc.deallocate(matrix<T>::a, size());
+				matrix<T>::operator=(x);
+				matrix<T>::a = alloc.allocate(x.size());
+				copy(x);
+			}
+
+			return *this;
+		}
+		matrix_alloc& operator=(const matrix_alloc& x)
+		{
+			if (this != &x) {
+				if (size())
+					alloc.deallocate(matrix<T>::a, size());
+				matrix<T>::operator=(x);
 				matrix<T>::a = alloc.allocate(x.size());
 				copy(x);
 			}
@@ -46,18 +59,25 @@ namespace blas {
 		matrix_alloc(matrix_alloc&& x) noexcept
 			: matrix<T>(x)
 		{
-			x.operator=(matrix<T>{});
+			x.r = x.c = 0;
+			x.a = nullptr;
 		}
 		matrix_alloc& operator=(matrix_alloc&& x)
 		{
-			matrix::operator=(x);
-			x.operator=(matrix<T>{});
+			if (this != &x) {
+				if (size())
+					alloc.deallocate(matrix<T>::a, size());
+				matrix<T>::operator=(x);
+				x.r = x.c = 0;
+				x.a = nullptr;
+			}
 
 			return *this;
 		}
 		~matrix_alloc()
 		{ 
-			alloc.deallocate(matrix<T>::a, size());
+			if (size()) 
+				alloc.deallocate(matrix<T>::a, size());
 		}
 
 #ifdef _DEBUG
@@ -71,7 +91,7 @@ namespace blas {
 				ensure(m.size() == 6);
 				ensure(m.trans() == CblasNoTrans);
 				ensure(m.data());
-				m.as_vector().fill(T(0));
+				m.fill(T(0));
 
 				matrix_alloc<T> m2{ m };
 				ensure(m2);
@@ -90,12 +110,37 @@ namespace blas {
 				m(0, 1) = T(7);
 				ensure(!m.equal(m2));
 			}
+			{
+				T a_[] = { 1,2,3,4,5,6 };
+				matrix<T> a(2, 3, a_);
+				matrix_alloc<T> m(2, 3);
+				m.copy(a);
+				ensure(m.equal(a));
+				m.fill(0);
+				m = a;
+				ensure(m.equal(a));
+			}
+			{
+				auto id = identity<T>(3);
+				auto id2{ id };
+				id = id2;
+			}
 
 			return 0;
 		}
 #endif // _DEBUG
 	};
 
+	template<class T>
+	inline matrix_alloc<T> identity(int n)
+	{
+		matrix_alloc<T> id(n, n);
+
+		id.fill(0);
+		vector(n, id.data(), n + 1).fill(1);
+
+		return id;
+	}
 
 
 } // namespace blas
