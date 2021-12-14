@@ -5,6 +5,19 @@
 
 namespace blas {
 
+	template<class T>
+	struct mv {
+		//static const decltype(cblas_sgemv)* ge;
+	};
+	template<>
+	struct mv<float> {
+		static constexpr decltype(cblas_sgemv)* ge = cblas_sgemv;
+	};
+	template<>
+	struct mv<double> {
+		static constexpr decltype(cblas_dgemv)* ge = cblas_dgemv;
+	};
+
 	// Computes a matrix-vector product using a general matrix.
 	// y = alpha op(A)*x + beta y
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-gemv.html
