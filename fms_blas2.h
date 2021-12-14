@@ -5,7 +5,9 @@
 
 namespace blas {
 
+	// Computes a matrix-vector product using a general matrix.
 	// y = alpha op(A)*x + beta y
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-gemv.html
 	template<class T, class U, class V>
 	inline vector<V> gemv(const matrix<T>& a, const vector<U>& x, vector<V>& y, V alpha = V(1), V beta = V(0))
 	{
@@ -64,8 +66,9 @@ namespace blas {
 
 #endif // _DEBUG
 
-	// Computes a matrix-vector product using a triangular packed matrix.
-	// x = op(A)*x where A is triangular
+	// Computes a matrix-vector product using a triangular matrix.
+	// x = op(A)*x 
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-trmv.html
 	template<class T, class U>
 	inline vector<U> trmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
 	{
@@ -82,7 +85,9 @@ namespace blas {
 		return x;
 	}
 
+	// Solves a system of linear equations whose coefficients are in a triangular matrix.
 	// Solve op(A) x = b for x where A is triangular and x = b on entry.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-trsv.html
 	template<class T, class U>
 	inline vector<U> trsv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
 	{
@@ -134,7 +139,8 @@ namespace blas {
 #endif // _DEBUG
 
 	// Computes a matrix-vector product using a triangular packed matrix.
-	// x = op(A)*x where A is triangular
+	// x = op(A)*x 
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-tpmv.html
 	template<class T, class U>
 	inline vector<U> tpmv(CBLAS_UPLO uplo, const matrix<T>& a, vector<U>& x, CBLAS_DIAG diag = CblasNonUnit)
 	{

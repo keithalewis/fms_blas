@@ -1,29 +1,53 @@
 // fms_blas1.h - BLAS level 1
 #pragma once
+#include <cmath>
 #include "fms_blas_vector.h"
 
 namespace blas {
-
-	template<class T>
-	constexpr bool is_float = std::is_same_v<std::remove_cv_t<T>, float>;
-	template<class T>
-	constexpr bool is_double = std::is_same_v<std::remove_cv_t<T>, double>;
 
 	//
 	// BLAS level 1
 	//
 
+	template<class T>
+	struct cblas {
+		static size_t (*iamax)(int, const T*, int);
+	};
+	template<>
+	struct cblas<float> {
+		static constexpr size_t (*iamax)(int, const float*, int) = cblas_isamax;
+	};
+	template<>
+	struct cblas<double> {
+		static constexpr size_t (*iamax)(int, const double*, int) = cblas_idamax;
+	};
+
 	// arg max |x_i|
 	template<class T>
 	inline auto iamax(const vector<T>& x)
 	{
-		if constexpr (is_float<T>) {
-			return cblas_isamax(x.size(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			return cblas_idamax(x.size(), x.data(), x.incr());
-		}
+		return cblas<std::remove_cv_t<T>>::iamax(x.size(), x.data(), x.incr());
 	}
+#ifdef _DEBUG
+	template<class T>
+	inline int iamax_test()
+	{
+		{
+			T x[] = { 1,3,2 };
+			auto i = iamax(blas::vector(x));
+			assert(1 == i);
+			assert(3 == x[i]);
+		}
+		{
+			const T x[] = { 1,3,2 };
+			auto i = iamax(blas::vector(x));
+			assert(1 == i);
+			assert(3 == x[i]);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 	// arg min |x_i|
 	template<class T>
@@ -110,6 +134,12 @@ namespace blas {
 			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
 		}
 	}
+	template<class T>
+	inline void rot(vector<T> x, vector<T> y, T theta)
+	{
+		rot(x, y, cos(theta), sin(theta));
+	}
+
 
 	template<class T>
 	inline void swap(vector<T> x, vector<T> y)

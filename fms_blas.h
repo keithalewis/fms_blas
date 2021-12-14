@@ -1,5 +1,6 @@
 // fms_blas.h - BLAS wrappers
 #pragma once
+#include <type_traits>
 #pragma warning(disable: 26812)
 #include "fms_blas_pack.h"
 #include "fms_blas_vector_alloc.h"
@@ -16,6 +17,11 @@
 #define INTEL_CBLAS(x) INTEL_ONEMKL ONEMKL_CBLAS "cblas-" x ".html"
 
 namespace blas {
+
+	template<class T>
+	constexpr bool is_float = std::is_same_v<float, std::remove_cv_t<T>>;
+	template<class T>
+	constexpr bool is_double = std::is_same_v<double, std::remove_cv_t<T>>;
 
 	// n 1's
 	template<class X>
@@ -34,7 +40,7 @@ namespace blas {
 	}
 
 
-	// x . y
+	// blas_?dot does not allow stride 0
 	inline double dot(size_t n, const double* x, const double* y, size_t stride = 1)
 	{
 		double s = 0;

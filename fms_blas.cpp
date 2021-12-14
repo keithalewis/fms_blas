@@ -1,4 +1,5 @@
 // fms_blas.cpp - BLAS tests
+#include <cassert>
 #include "fms_lapack.h"
 #include "fms_blas.h"
 
@@ -6,6 +7,9 @@ template<class X>
 int fms_blas_test()
 {
 #ifdef _DEBUG
+	blas::pack_test<X>();
+	blas::unpack_test<X>();
+	blas::iamax_test<X>();
 	blas::vector<X>::test();
 	blas::vector_alloc<X>::test();
 	blas::matrix<X>::test();
@@ -13,9 +17,7 @@ int fms_blas_test()
 	blas::identity_matrix<3,X>::test();
 	blas::blas2_test<X>();
 	blas::blas3_test<X>();
-	lapack::potrf_test<X>();
-	lapack::potri_test<X>();
-	lapack::potrs_test<X>();
+	lapack::potr_test<X>();
 
 #endif // _DEBUG
 
