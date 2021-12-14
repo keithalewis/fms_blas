@@ -27,9 +27,6 @@ namespace blas {
 	}
 #pragma warning(pop)
 
-	static inline const char vector_doc[] = R"xyzyx(
-	Non-owning strided view of array of T tailored to CBLAS.
-)xyzyx";
 	template<typename T>
 	class vector {
 	protected:
@@ -41,6 +38,10 @@ namespace blas {
 		using reference = T&;
 		using pointer = T*;
 		using difference_type = ptrdiff_t;
+
+static inline const char documentation[] = R"xyzyx(
+Non-owning strided view of array of T tailored to CBLAS.
+)xyzyx";
 
 		vector()
 			: n(0), v(nullptr), dn(1)
@@ -328,6 +329,18 @@ namespace blas {
 					ensure(vi == i);
 					i += 1;
 				}
+			}
+			{
+				T v[3] = { 1,2,3 };
+				auto v_ = vector(v);
+				v_[1] = 4;
+				assert(4 == v[1]);
+			}
+			{
+				const T v[3] = { 1,2,3 };
+				auto v_ = vector<const T>(v);
+				//v_[1] = 4; // read only
+				assert(2 == v[1]);
 			}
 
 			return 0;

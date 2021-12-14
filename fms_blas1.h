@@ -12,14 +12,17 @@ namespace blas {
 	template<class T>
 	struct cblas {
 		static size_t (*iamax)(int, const T*, int);
+		static void (*axpy)(int, T, const T*, int, T*, int);
 	};
 	template<>
 	struct cblas<float> {
 		static constexpr size_t (*iamax)(int, const float*, int) = cblas_isamax;
+		static constexpr void (*axpy)(int, float, const float*, int, float*, int) = cblas_saxpy;
 	};
 	template<>
 	struct cblas<double> {
 		static constexpr size_t (*iamax)(int, const double*, int) = cblas_idamax;
+		static constexpr void (*axpy)(int, double, const double*, int, double*, int) = cblas_daxpy;
 	};
 
 	// arg max |x_i|
@@ -39,10 +42,10 @@ namespace blas {
 			assert(3 == x[i]);
 		}
 		{
-			const T x[] = { 1,3,2 };
+			const T x[] = { 1,-3,2 };
 			auto i = iamax(blas::vector(x));
 			assert(1 == i);
-			assert(3 == x[i]);
+			assert(-3 == x[i]);
 		}
 
 		return 0;
@@ -78,18 +81,29 @@ namespace blas {
 	}
 
 	// y = a x + y
-	template<class V, class T, class U>
-	inline vector<U> axpy(V a, const vector<T>& x, vector<U> y)
+	template<class T, class U>
+	inline vector<T> axpy(T a, const vector<U>& x, vector<T> y)
 	{
-		if constexpr (is_float<T>) {
-			cblas_saxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
-		}
-		if constexpr (is_double<T>) {
-			cblas_daxpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
-		}
+		cblas<T>::axpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
 
 		return y;
 	}
+#ifdef _DEBUG
+	template<class T>
+	inline int axpy_test()
+	{
+		{
+			const T a = 2;
+			const T x[] = { 3,4 };
+			T y[] = { 5,6 };
+			auto z = axpy(a, blas::vector(x), blas::vector(y));
+			assert(2 * 3 + 5 == z[0]);
+			assert(2 * 4 + 6 == z[1]);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 	// x . y
 	template<class T, class U>

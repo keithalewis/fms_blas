@@ -5,21 +5,6 @@
 
 namespace lapack {
 
-	// CBLAS to LAPACK conversion
-	template<CBLAS_TRANSPOSE T>
-	struct cblas_trans { static char const trans;  };
-	template<>
-	struct cblas_trans<CblasTrans> { static const char trans = 'T'; };
-	template<>
-	struct cblas_trans<CblasNoTrans> { static const char trans = 'N'; };
-
-	template<CBLAS_UPLO UL>
-	struct cblas_uplo { static const char uplo; };
-	template<>
-	struct cblas_uplo<CblasUpper> { static const char uplo = 'U'; };
-	template<>
-	struct cblas_uplo<CblasLower> { static const char uplo = 'L'; };
-
 	// Computes the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix.
 	// A = U'U or LL'
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-computational-routines/matrix-factorization-lapack-computational-routines/potrf.html
@@ -62,11 +47,11 @@ namespace lapack {
 	{
 		char ul = uplo == CblasUpper ? 'U' : 'L';
 
-		if constexpr (is_float<T>) {
+		if constexpr (blas::is_float<T>) {
 			return LAPACKE_spotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
 				a.data(), a.ld(), b.data(), b.ld());
 		}
-		if constexpr (is_double<T>) {
+		if constexpr (blas::is_double<T>) {
 			return LAPACKE_dpotrs(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
 				a.data(), a.ld(), b.data(), b.ld());
 		}
@@ -102,8 +87,7 @@ namespace lapack {
 			assert(eq(0, c[2], eps));
 			assert(eq(1, c[3], eps));
 
-			//a_.copy(4, a1);
-			/*
+			a_.copy(4, a1);
 			potrf(CblasLower, a_);
 			c_.copy(4, a1);
 			assert(0 == potrs(CblasLower, a_, c_));
@@ -111,7 +95,37 @@ namespace lapack {
 			assert(eq(0, c[1], 3 * eps));
 			assert(eq(0, c[2], eps));
 			assert(eq(1, c[3], eps));
-			*/
+		}
+		{
+			T a[] = { 1,2,
+					  2,13 };
+			blas::matrix<T> a_(2, 2, a);
+			potrf(CblasUpper, a_);
+			assert(1 == a[0]);
+			assert(2 == a[1]);
+			assert(a[2] == a[2]);
+			assert(3 == a[3]);
+
+			potri(CblasUpper, a_); // a^-1;
+			assert(a[2] == a[2]); // upper corner untouched
+			a[2] = a[1]; // actual inverse
+
+			T a1[] = { 1, 2, 2, 13 };
+			T c[4];
+			blas::matrix<T> c_ = blas::gemm(a_, blas::matrix(2, 2, a1), c);
+			assert(eq(1, c[0], 3 * eps));
+			assert(eq(0, c[1], 3 * eps));
+			assert(eq(0, c[2], eps));
+			assert(eq(1, c[3], eps));
+
+			a_.copy(4, a1);
+			potrf(CblasUpper, a_);
+			c_.copy(4, a1);
+			assert(0 == potrs(CblasUpper, a_, c_));
+			assert(eq(1, c[0], 3 * eps));
+			assert(eq(0, c[1], 3 * eps));
+			assert(eq(0, c[2], eps));
+			assert(eq(1, c[3], eps));
 		}
 
 		return 0;
@@ -154,24 +168,54 @@ namespace lapack {
 				a.data(), b.data(), b.ld());
 		}
 	}
-
-	// Computes the solution to the system of linear equations with a symmetric or Hermitian positive-definite coefficient matrix A and multiple right-hand sides.
-	// Solve A * X = B for X where A is positive definite.
-	// The columns of B are the solutions on exit.
-	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-driver-routines/posv.html
-	template<class T, class U>
-	inline int posv(CBLAS_UPLO uplo, const blas::matrix<T>& a, blas::matrix<U>& b)
+#ifdef _DEBUG
+	template<class T>
+	inline int pptr_test()
 	{
-		char ul = uplo == CblasUpper ? 'U' : 'L';
+		constexpr T eps = std::numeric_limits<T>::epsilon();
+		const auto eq = [](T a, T b, T tol) { return fabs(a - b) <= tol;  };
 
-		if constexpr (is_float<T>) {
-			return LAPACKE_sposv(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
-				a.data(), a.ld(), b.data(), b.ld());
+		{
+			T a[] = { 1,0,2,13 };
+			T ap[3];
+			blas::packl(2, a, ap);
+			blas::matrix<T> a_(2, 2, ap);
+			assert(0 == pptrf(CblasLower, a_));
+			assert(1 == ap[0]);
+			assert(2 == ap[1]);
+			assert(3 == ap[2]);
+
+			a[1] = a[2];
+			blas::matrix<T> b(2, 2, a);
+			assert(0 == pptrs(CblasLower, a_, b));
+			assert(1 == a[0]);
+			assert(0 == a[1]);
+			assert(0 == a[2]);
+			assert(1 == a[3]);
 		}
-		if constexpr (is_double<T>) {
-			return LAPACKE_dposv(LAPACK_ROW_MAJOR, ul, a.rows(), b.ld(),
-				a.data(), a.ld(), b.data(), b.ld());
+		{
+			T a[] = { 1,2,0,13 };
+			T ap[3];
+			blas::packu(2, a, ap);
+			blas::matrix<T> a_(2, 2, ap);
+			assert(0 == pptrf(CblasUpper, a_));
+			assert(1 == ap[0]);
+			assert(2 == ap[1]);
+			assert(3 == ap[2]);
+
+			a[2] = a[1]; 
+			blas::matrix<T> b(2, 2, a);
+			assert(0 == pptrs(CblasUpper, a_, b));
+			assert(1 == a[0]);
+			assert(0 == a[1]);
+			assert(0 == a[2]);
+			assert(1 == a[3]);
 		}
+
+
+		return 0;
 	}
+#endif // _DEBUG
+
 
 } // namespace lapack
