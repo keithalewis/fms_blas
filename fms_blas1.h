@@ -9,20 +9,36 @@ namespace blas {
 	// BLAS level 1
 	//
 
-	template<class T>
-	struct cblas {
-		static size_t (*iamax)(int, const T*, int);
-		static void (*axpy)(int, T, const T*, int, T*, int);
+#define CBLAS1(X) \
+	X(asum) \
+	X(axpy) \
+	X(dot) \
+
+#define CBLAS1_I(X) \
+	X(amax) \
+	X(amin) \
+
+#define CBLAS_(T, F) static constexpr decltype(cblas_##T##F)* F = cblas_##T##F;
+#define CBLAS_I(T, F) static constexpr decltype(cblas_i##T##F)* i##F = cblas_i##T##F;
+
+	template<class T> struct cblas { };
+
+	template<> struct cblas<float> {
+#define CBLAS_S(F) CBLAS_(s, F)
+		CBLAS1(CBLAS_S)
+#undef CBLAS_S
+#define CBLAS_IS(F) CBLAS_I(s, F)
+			CBLAS1_I(CBLAS_IS)
+#undef CBLAS_IS
 	};
-	template<>
-	struct cblas<float> {
-		static constexpr size_t (*iamax)(int, const float*, int) = cblas_isamax;
-		static constexpr void (*axpy)(int, float, const float*, int, float*, int) = cblas_saxpy;
-	};
-	template<>
-	struct cblas<double> {
-		static constexpr size_t (*iamax)(int, const double*, int) = cblas_idamax;
-		static constexpr void (*axpy)(int, double, const double*, int, double*, int) = cblas_daxpy;
+
+	template<> struct cblas<double> {
+#define CBLAS_D(F) CBLAS_(d, F)
+		CBLAS1(CBLAS_D)
+#undef CBLAS_D
+#define CBLAS_ID(F) CBLAS_I(d, F)
+			CBLAS1_I(CBLAS_ID)
+#undef CBLAS_IS
 	};
 
 	// arg max |x_i|
@@ -31,60 +47,52 @@ namespace blas {
 	{
 		return cblas<std::remove_cv_t<T>>::iamax(x.size(), x.data(), x.incr());
 	}
+
+	// arg min |x_i|
+	template<class T>
+	inline auto iamin(const vector<T>& x)
+	{
+		return cblas<std::remove_cv_t<T>>::iamin(x.size(), x.data(), x.incr());
+	}
 #ifdef _DEBUG
 	template<class T>
-	inline int iamax_test()
+	inline int maxmin_test()
 	{
 		{
 			T x[] = { 1,3,2 };
-			auto i = iamax(blas::vector(x));
+			auto i = iamax(vector(x));
 			assert(1 == i);
 			assert(3 == x[i]);
+			auto j = iamin(vector(x));
+			assert(0 == j);
+			assert(1 == x[j]);
 		}
 		{
-			const T x[] = { 1,-3,2 };
-			auto i = iamax(blas::vector(x));
+			const T x[] = { -1,-3,2 };
+			auto i = iamax(vector(x));
 			assert(1 == i);
 			assert(-3 == x[i]);
+			auto j = iamin(vector(x));
+			assert(0 == j);
+			assert(-1 == x[j]);
 		}
 
 		return 0;
 	}
 #endif // _DEBUG
 
-	// arg min |x_i|
-	template<class T>
-	inline auto iamin(const vector<T>& x)
-	{
-		if constexpr (is_float<T>) {
-			return cblas_isamin(x.size(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			return cblas_idamin(x.size(), x.data(), x.incr());
-		}
-	}
-
 	// sum_i |x_i|
 	template<class T>
 	inline T asum(const vector<T>& x)
 	{
-		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
-
-		if constexpr (is_float<T>) {
-			s = cblas_sasum(x.size(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			s = cblas_dasum(x.size(), x.data(), x.incr());
-		}
-
-		return s;
+		return cblas<std::remove_cv_t<T>>::asum(x.size(), x.data(), x.incr());
 	}
 
 	// y = a x + y
-	template<class T, class U>
-	inline vector<T> axpy(T a, const vector<U>& x, vector<T> y)
+	template<class T, class U, class V>
+	inline auto axpy(T a, const vector<U>& x, vector<V> y)
 	{
-		cblas<T>::axpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
+		cblas<V>::axpy(x.size(), a, x.data(), x.incr(), y.data(), y.incr());
 
 		return y;
 	}
@@ -94,9 +102,16 @@ namespace blas {
 	{
 		{
 			const T a = 2;
-			const T x[] = { 3,4 };
+			T x[] = { 3,4 };
 			T y[] = { 5,6 };
-			auto z = axpy(a, blas::vector(x), blas::vector(y));
+			auto z = axpy(a, vector(x), vector(y));
+			assert(2 * 3 + 5 == z[0]);
+			assert(2 * 4 + 6 == z[1]);
+		}
+		{
+			const T a = 2;
+			T y[] = { 5,6 };
+			auto z = axpy(a, vector<const T>({ 3, 4 }), vector(y));
 			assert(2 * 3 + 5 == z[0]);
 			assert(2 * 4 + 6 == z[1]);
 		}
@@ -105,21 +120,30 @@ namespace blas {
 	}
 #endif // _DEBUG
 
-	// x . y
+	// x' y
 	template<class T, class U>
-	inline T dot(const vector<T>& x, const vector<U>& y)
+	inline auto dot(const vector<T>& x, const vector<U>& y)
 	{
-		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
-
-		if constexpr (is_float<T>) {
-			s = cblas_sdot(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-		if constexpr (is_double<T>) {
-			s = cblas_ddot(x.size(), x.data(), x.incr(), y.data(), y.incr());
-		}
-
-		return s;
+		return cblas< std::remove_cv_t<T>>::dot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 	}
+#ifdef _DEBUG
+	template<class T>
+	inline int dot_test()
+	{
+		{
+			T x[] = { 1, 2 };
+			T y[] = { 3, 4 };
+			T xy = dot(vector(x), vector(y));
+			assert(1 * 3 + 2 * 4 == xy);
+		}
+		{
+			T xy = dot(vector<const T>({ 1,2 }), vector<const T>({ 3,4 }));
+			assert(1 * 3 + 2 * 4 == xy);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 	// sqrt (sum_i v_i^2)
 	template<class T>
@@ -187,15 +211,9 @@ namespace blas {
 	template<class T>
 	inline int blas1_test()
 	{
-		{
-			T _v[3] = { 1, -2, 3 };
-			auto v = vector<T>(_v);
-
-			ensure(2 == iamax<T>(v));
-			ensure(0 == iamin<T>(v));
-			ensure(6 == asum<T>(v));
-			ensure(sqrt(T(1 + 4 + 9)) == nrm2(v));
-		}
+		maxmin_test<T>();
+		axpy_test<T>();
+		dot_test<T>();
 
 		return 0;
 	}

@@ -40,10 +40,10 @@ namespace blas {
 	template<class T>
 	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = T(1), T beta = T(0))
 	{
-		ensure(a.rows() == y.size());
 		ensure(a.columns() == x.size());
+		ensure(a.rows() == y.size());
 
-		mv<T>::ge(CblasRowMajor, a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data(), y.incr());
+		mv<T>::ge(CblasRowMajor, a.trans(), a.r, a.c, alpha, a.data(), a.c, x.data(), x.incr(), beta, y.data(), y.incr());
 
 		return y;
 	}
@@ -61,7 +61,6 @@ namespace blas {
 			assert(1 * 1 + 2 * 2 + 3 * 3 == y[0]);
 			assert(4 * 1 + 5 * 2 + 6 * 3 == y[1]);
 		}
-		/*
 		{
 			T a[] = { 1,2,3,
 					  4,5,6 };
@@ -69,11 +68,25 @@ namespace blas {
 			T y[3];
 
 			auto y_ = gemv(matrix(2, 3, a).transpose(), vector(x), vector(y));
-			assert(1 * 1 + 4 * 1 == y[0]);
+			assert(1 * 1 + 4 * 2 == y[0]);
 			assert(2 * 1 + 5 * 2 == y[1]);
 			assert(3 * 1 + 6 * 2 == y[2]);
 		}
-		*/
+		{
+			T a[] = { 1, 2, 3, 4, 5, 6 };
+			T x[] = { 1, 2, 3 };
+
+			matrix<T> A(2, 3, a);
+
+			auto y = A * vector(x);
+			assert(1 * 1 + 2 * 2 + 3 * 3 == y[0]);
+			assert(4 * 1 + 5 * 2 + 6 * 3 == y[1]);
+
+			y = A.transpose() * vector(2, x);
+			assert(1 * 1 + 4 * 2 == y[0]);
+			assert(2 * 1 + 5 * 2 == y[1]);
+			assert(3 * 1 + 6 * 2 == y[2]);
+		}
 
 		return 0;
 	}
@@ -84,8 +97,8 @@ namespace blas {
 	// Computes a matrix-vector product using a triangular packed matrix.
 	// x = op(A) x
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-tpmv.html
-	template<class T>
-	inline vector<T> tpmv(const tp<T>& a, vector<T> x, CBLAS_DIAG diag = CblasNonUnit)
+	template<class T, class U>
+	inline vector<U> tpmv(const tp<T>& a, vector<U> x, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		ensure(a.rows() == a.columns());
 		ensure(a.rows() == x.size());
@@ -94,6 +107,48 @@ namespace blas {
 
 		return x;
 	}
+#ifdef _DEBUG
+	template<class T>
+	inline int tpmv_test()
+	{
+		{
+			T a[] = { 1,
+					  2, 3,
+					  4, 5, 6 };
+			tp<T> A(3, a, CblasLower);
+			T x[] = { 1, 2, 3 };
+			tpmv(A, vector(x));
+			ensure(1 == x[0]);
+			ensure(2 * 1 + 3 * 2 == x[1]);
+			ensure(4 * 1 + 5 * 2 + 6 * 3 == x[2]);
+		}
+		{
+			T a[] = { 1, 2, 4,
+					     3, 5,
+					        6 };
+			tp<T> A(3, a, CblasLower);
+			T x[] = { 1, 2, 3 };
+			A.t = CblasTrans;
+			tpmv(A, vector(x));
+			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
+			ensure(3 * 2 + 5 * 3 == x[1]);
+			ensure(6 * 3 == x[2]);
+		}
+		{
+			T a[] = { 1, 2, 4,
+						 3, 5,
+							6 };
+			tp<T> A(3, a, CblasUpper);
+			T x[] = { 1, 2, 3 };
+			tpmv(A, vector(x));
+			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
+			ensure(3 * 2 + 5 * 3 == x[1]);
+			ensure(6 * 3 == x[2]);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 
 	// Computes a matrix-vector product using a triangular matrix.
@@ -279,6 +334,7 @@ namespace blas {
 		scal_test<T>();
 		gemv_test<T>();
 		trsv_test<T>();
+		tpmv_test<T>();
 
 		return 0;
 	}
@@ -287,3 +343,11 @@ namespace blas {
 
 
 } // namespace blas
+
+template<class T>
+inline blas::vector_alloc<T> operator*(const blas::ge<T>& a, const blas::vector<T>& x)
+{
+	blas::vector_alloc<T> y(a.rows());
+
+	return blas::gemv(a, x, y);
+}

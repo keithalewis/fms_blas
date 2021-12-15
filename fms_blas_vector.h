@@ -60,7 +60,6 @@ Non-owning strided view of array of T tailored to CBLAS.
 		vector(T(&v)[N])
 			: n(static_cast<int>(N)), v(v), dn(1)
 		{ }
-
 		vector(const vector&) = default;
 		vector& operator=(const vector&) = default;
 		vector(vector&&) = default;

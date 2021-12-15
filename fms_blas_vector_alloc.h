@@ -51,14 +51,22 @@ namespace blas {
 		}
 		vector_alloc& operator=(vector_alloc&& x)
 		{
-			vector<T>::operator=(x);
-			x.operator=(vector<T>{});
+			if (this != &x) {
+				if (capacity())
+					alloc.deallocate(vector<T>::v, capacity());
+				vector<T>::n = x.n;
+				vector<T>::dn = x.dn;
+				vector<T>::v = x.v;
+				x.n = x.dn = 0;
+				x.v = nullptr;
+			}
 
 			return *this;
 		}
 		~vector_alloc()
 		{
-			alloc.deallocate(vector<T>::v, capacity());
+			if (capacity())
+				alloc.deallocate(vector<T>::v, capacity());
 		}
 
 #ifdef _DEBUG

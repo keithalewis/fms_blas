@@ -49,12 +49,12 @@ int fms_blas_test()
 #ifdef _DEBUG
 	blas::pack_test<X>();
 	blas::unpack_test<X>();
-	blas::iamax_test<X>();
-	blas::axpy_test<X>();
 	blas::vector<X>::test();
 	blas::vector_alloc<X>::test();
 	blas::matrix<X>::test();
+	blas::tp_test<X>();
 	blas::matrix_alloc<X>::test();
+	blas::blas1_test<X>();
 	blas::blas2_test<X>();
 	blas::blas3_test<X>();
 	lapack::potr_test<X>();

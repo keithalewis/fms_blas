@@ -7,7 +7,7 @@ namespace blas {
 	// non owning view of matrix
 	template<typename T>
 	class matrix {
-	protected:
+	public:
 		int r, c;
 		T* a;
 		CBLAS_TRANSPOSE t;
@@ -299,8 +299,9 @@ namespace blas {
 		CBLAS_UPLO ul;
 		CBLAS_DIAG d;
 	public:
-		tp(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
-			: matrix<T>(m), ul(ul), d(d)
+		// a must be packed
+		tp(int n, T* a, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
+			: matrix<T>(n, n, a), ul(ul), d(d)
 		{ }
 		CBLAS_UPLO uplo() const
 		{
@@ -310,11 +311,32 @@ namespace blas {
 		{
 			return d;
 		}
+		tp& pack(const matrix<T>& a)
+		{
+			blas::pack(ul, matrix<T>::rows(), a.data(), matrix<T>::a);
+		}
 		int index(int i, int j) const
 		{
 			return indexp(i, j);
 		}
 	};
+#ifdef _DEBUG
+	template<class T>
+	inline int tp_test()
+	{
+		{
+			T a[] = { 1,2,3,4,5,6 };
+			tp<T> A(2, a, CblasLower);
+			assert(CblasNoTrans == A.trans());
+			assert(CblasLower == A.uplo());
+			assert(CblasNonUnit == A.diag());
+			
+			//assert(1 == t);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 	
 	// triangular
 	template<class T>
@@ -334,11 +356,39 @@ namespace blas {
 		{
 			return d;
 		}
-		int index(int i, int j) const
+		T operator()(int i, int j) const
 		{
-			return indexp(i, j);
+			if (CblasLower == ul xor CblasNoTrans == matrix<T>::trans()) {
+				return i > j ? matrix<T>::operator()(i, j) : 0;
+			}
+			else {
+				return i < j ? matrix<T>::operator()(i, j) : 0;
+			}
 		}
+	};
 
+	// symmetric
+	template<class T>
+	struct sy : public matrix<T> {
+		CBLAS_UPLO ul;
+	public:
+		sy(const matrix<T>& m, CBLAS_UPLO ul)
+			: matrix<T>(m), ul(ul)
+		{
+		}
+		CBLAS_UPLO uplo() const
+		{
+			return ul;
+		}
+		T operator()(int i, int j) const
+		{
+			if (CblasLower == ul xor CblasNoTrans == matrix<T>::trans()) {
+				return i >= j ? matrix<T>::operator()(i, j) : matrix<T>::operator()(j, i);
+			}
+			else {
+				return i <= j ? matrix<T>::operator()(i, j) : matrix<T>::operator()(j, i);
+			}
+		}
 	};
 	
 } // namespace blas
