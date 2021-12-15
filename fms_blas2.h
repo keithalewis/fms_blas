@@ -124,18 +124,6 @@ namespace blas {
 		}
 		{
 			T a[] = { 1, 2, 4,
-					     3, 5,
-					        6 };
-			tp<T> A(3, a, CblasLower);
-			T x[] = { 1, 2, 3 };
-			A.t = CblasTrans;
-			tpmv(A, vector(x));
-			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
-			ensure(3 * 2 + 5 * 3 == x[1]);
-			ensure(6 * 3 == x[2]);
-		}
-		{
-			T a[] = { 1, 2, 4,
 						 3, 5,
 							6 };
 			tp<T> A(3, a, CblasUpper);

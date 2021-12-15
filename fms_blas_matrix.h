@@ -307,6 +307,18 @@ namespace blas {
 		{
 			return ul;
 		}
+		tp uplo(CBLAS_UPLO _ul) const
+		{
+			return tp(matrix<T>::n, matrix<T>::a, _ul);
+		}
+		tp upper() const
+		{
+			return uplo(CblasUpper);
+		}
+		tp lower() const
+		{
+			return uplo(CblasLower);
+		}
 		CBLAS_DIAG diag() const
 		{
 			return d;

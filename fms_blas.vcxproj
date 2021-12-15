@@ -177,6 +177,7 @@
   <ItemGroup>
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="fms_blas.cpp" />
+    <ClCompile Include="fms_xerbla.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

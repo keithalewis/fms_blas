@@ -39,20 +39,6 @@ namespace blas {
 		return blas::dot(x, one<X>(x.size()));
 	}
 
-
-	// blas_?dot does not allow stride 0
-	inline double dot(size_t n, const double* x, const double* y, size_t stride = 1)
-	{
-		double s = 0;
-
-		for (size_t i = 0; i < n; ++i) {
-			s += x[i] * y[i * stride];
-		}
-
-		return s;
-	}
-
-
 	// x' A x
 	template<class X, class Y>
 	X quad(CBLAS_UPLO uplo, const blas::matrix<X>& A, const blas::vector<Y>& x)

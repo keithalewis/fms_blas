@@ -140,6 +140,12 @@ namespace blas {
 			T xy = dot(vector<const T>({ 1,2 }), vector<const T>({ 3,4 }));
 			assert(1 * 3 + 2 * 4 == xy);
 		}
+		{
+			T x[] = { 1, 2 };
+			T one = 1;
+			T xy = dot(vector(x), vector(2, &one, 0));
+			assert(3 == xy);
+		}
 
 		return 0;
 	}

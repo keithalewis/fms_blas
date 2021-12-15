@@ -65,5 +65,8 @@
     <ClCompile Include="debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="fms_xerbla.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
