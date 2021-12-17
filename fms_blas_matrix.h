@@ -4,6 +4,11 @@
 
 namespace blas {
 
+	inline CBLAS_TRANSPOSE transpose(CBLAS_TRANSPOSE t)
+	{
+		return (t == CblasTrans) ? CblasNoTrans : CblasTrans;
+	}
+
 	// non owning view of matrix
 	template<typename T>
 	class matrix {
@@ -162,7 +167,7 @@ namespace blas {
 		{
 			matrix<T> m(*this);
 
-			m.t = (t == CblasTrans) ? CblasNoTrans : CblasTrans;
+			m.t = blas::transpose(t);
 
 			return m;
 		}
@@ -314,6 +319,14 @@ namespace blas {
 			matrix<T>::operator=(m);
 
 			return *this;
+		}
+		tp transpose() const
+		{
+			tp m(*this);
+
+			m.t = blas::transpose(matrix<T>::t);
+
+			return m;
 		}
 		CBLAS_UPLO uplo() const
 		{
