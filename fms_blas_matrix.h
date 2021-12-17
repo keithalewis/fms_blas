@@ -299,17 +299,29 @@ namespace blas {
 		CBLAS_UPLO ul;
 		CBLAS_DIAG d;
 	public:
+		tp()
+			: matrix<T>(), ul(CblasLower), d(CblasNonUnit)
+		{ }
 		// a must be packed
 		tp(int n, T* a, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
 			: matrix<T>(n, n, a), ul(ul), d(d)
 		{ }
+		tp(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
+			: matrix<T>(m), ul(ul), d(d)
+		{ }
+		tp& operator=(const matrix<T>& m)
+		{
+			matrix<T>::operator=(m);
+
+			return *this;
+		}
 		CBLAS_UPLO uplo() const
 		{
 			return ul;
 		}
 		tp uplo(CBLAS_UPLO _ul) const
 		{
-			return tp(matrix<T>::n, matrix<T>::a, _ul);
+			return tp(matrix<T>::r, matrix<T>::a, _ul);
 		}
 		tp upper() const
 		{

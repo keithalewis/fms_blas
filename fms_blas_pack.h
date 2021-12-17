@@ -131,6 +131,11 @@ namespace blas {
 			}
 		}
 	}
+	template<class T>
+	inline void unpack(CBLAS_UPLO uplo, int n, const T* l, T* a)
+	{
+		(CblasUpper == uplo) ? unpacku(n, l, a) : unpackl(n, l, a);
+	}
 	// unpack l into symmetric a
 	template<class T>
 	inline void unpacks(int n, const T* l, T* a)
