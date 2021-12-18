@@ -252,12 +252,12 @@ namespace blas {
 			auto b = matrix<T>(2, 2, _b).copy({ 7,8,9,10 });
 			auto x = matrix<T>(2, 2, _x).copy(b);
 
-			trmm(tr(a, CblasUpper), x);
-			trsm(tr(a, CblasUpper), x);
+			trmm(tr(a, CblasUpper, CblasNonUnit), x);
+			trsm(tr(a, CblasUpper, CblasNonUnit), x);
 			ensure(x.equal(b));
 
-			trmm(tr(a, CblasLower), x);
-			trsm(tr(a, CblasLower), x);
+			trmm(tr(a, CblasLower, CblasNonUnit), x);
+			trsm(tr(a, CblasLower, CblasNonUnit), x);
 			ensure(x.equal(b));
 		}
 

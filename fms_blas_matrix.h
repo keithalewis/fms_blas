@@ -351,70 +351,18 @@ namespace blas {
 		}
 	};
 
+	// packed triangular
 	template<class T>
 	using tp = matrixas<T, UpLo, Diag>;
 
-	/*
-	// triangular packed
+	// triangular
 	template<class T>
-	struct tp : public matrix<T> {
-		CBLAS_UPLO ul;
-		CBLAS_DIAG d;
-	public:
-		tp()
-			: matrix<T>(), ul(CblasLower), d(CblasNonUnit)
-		{ }
-		// a must be packed
-		tp(int n, T* a, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
-			: matrix<T>(n, n, a), ul(ul), d(d)
-		{ }
-		tp(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
-			: matrix<T>(m), ul(ul), d(d)
-		{ }
-		tp& operator=(const matrix<T>& m)
-		{
-			matrix<T>::operator=(m);
+	using tr = matrixas<T, UpLo, Diag>;
 
-			return *this;
-		}
-		tp transpose() const
-		{
-			tp m(*this);
+	// symmetric
+	template<class T>
+	using sy = matrixas<T, UpLo>;
 
-			m.t = blas::transpose(matrix<T>::t);
-
-			return m;
-		}
-		CBLAS_UPLO uplo() const
-		{
-			return ul;
-		}
-		tp uplo(CBLAS_UPLO _ul) const
-		{
-			return tp(matrix<T>::r, matrix<T>::a, _ul);
-		}
-		tp upper() const
-		{
-			return uplo(CblasUpper);
-		}
-		tp lower() const
-		{
-			return uplo(CblasLower);
-		}
-		CBLAS_DIAG diag() const
-		{
-			return d;
-		}
-		tp& pack(const matrix<T>& a)
-		{
-			blas::pack(ul, matrix<T>::rows(), a.data(), matrix<T>::a);
-		}
-		int index(int i, int j) const
-		{
-			return indexp(i, j);
-		}
-	};
-	*/
 #ifdef _DEBUG
 	template<class T>
 	inline int tp_test()
@@ -438,59 +386,5 @@ namespace blas {
 	}
 #endif // _DEBUG
 	
-	// triangular
-	template<class T>
-	struct tr : public matrix<T> {
-		CBLAS_UPLO ul;
-		CBLAS_DIAG d;
-	public:
-		tr(const matrix<T>& m, CBLAS_UPLO ul, CBLAS_DIAG d = CblasNonUnit)
-			: matrix<T>(m), ul(ul), d(d)
-		{
-		}
-		CBLAS_UPLO uplo() const
-		{
-			return ul;
-		}
-		CBLAS_DIAG diag() const
-		{
-			return d;
-		}
-		T operator()(int i, int j) const
-		{
-			if (CblasLower == ul xor CblasNoTrans == matrix<T>::trans()) {
-				return i > j ? matrix<T>::operator()(i, j) : 0;
-			}
-			else {
-				return i < j ? matrix<T>::operator()(i, j) : 0;
-			}
-		}
-	};
-
-	// symmetric
-	template<class T>
-	struct sy : public matrix<T> {
-		CBLAS_UPLO ul;
-	public:
-		sy(const matrix<T>& m, CBLAS_UPLO ul)
-			: matrix<T>(m), ul(ul)
-		{
-		}
-		CBLAS_UPLO uplo() const
-		{
-			return ul;
-		}
-		/*
-		T operator()(int i, int j) const
-		{
-			if (CblasLower == ul xor CblasNoTrans == matrix<T>::trans()) {
-				return i >= j ? matrix<T>::operator()(i, j) : matrix<T>::operator()(j, i);
-			}
-			else {
-				return i <= j ? matrix<T>::operator()(i, j) : matrix<T>::operator()(j, i);
-			}
-		}
-		*/
-	};
 	
 } // namespace blas

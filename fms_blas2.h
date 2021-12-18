@@ -261,16 +261,16 @@ namespace blas {
 			a.copy({ 1, 2, 0, 3 });
 			y1 = gemv<T>(a, b, y1);
 			y2.copy(b);
-			y2 = trmv<T>(tr(a, CblasUpper), y2);
-			y2 = trsv<T>(tr(a, CblasUpper), y2);
+			y2 = trmv<T>(tr(a, CblasUpper, CblasNonUnit), y2);
+			y2 = trsv<T>(tr(a, CblasUpper, CblasNonUnit), y2);
 			ensure(y2.equal(b));
 
 			a.copy({ 1, 0, 2, 3 });
 			y1 = gemv<T>(a, b, y1);
 			y2.copy(b);
-			y2 = trmv<T>(tr(a, CblasLower), y2);
+			y2 = trmv<T>(tr(a, CblasLower, CblasNonUnit), y2);
 			ensure(y2.equal(y1));
-			y2 = trsv<T>(tr(a, CblasLower), y2);
+			y2 = trsv<T>(tr(a, CblasLower, CblasNonUnit), y2);
 			ensure(y2.equal(b));
 		}
 
