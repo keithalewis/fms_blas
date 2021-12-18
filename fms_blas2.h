@@ -67,7 +67,7 @@ namespace blas {
 			T x[] = { 1, 2 };
 			T y[3];
 
-			auto y_ = gemv(matrix(2, 3, a).transpose(), vector(x), vector(y));
+			auto y_ = gemv(transpose(matrix(2, 3, a)), vector(x), vector(y));
 			assert(1 * 1 + 4 * 2 == y[0]);
 			assert(2 * 1 + 5 * 2 == y[1]);
 			assert(3 * 1 + 6 * 2 == y[2]);
@@ -82,7 +82,7 @@ namespace blas {
 			assert(1 * 1 + 2 * 2 + 3 * 3 == y[0]);
 			assert(4 * 1 + 5 * 2 + 6 * 3 == y[1]);
 
-			y = A.transpose() * vector(2, x);
+			y = transpose(A) * vector(2, x);
 			assert(1 * 1 + 4 * 2 == y[0]);
 			assert(2 * 1 + 5 * 2 == y[1]);
 			assert(3 * 1 + 6 * 2 == y[2]);
@@ -115,7 +115,7 @@ namespace blas {
 			T a[] = { 1,
 					  2, 3,
 					  4, 5, 6 };
-			tp<T> A(3, a, CblasLower);
+			tp<T> A(matrix(3, a), CblasLower, CblasNonUnit);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
 			ensure(1                     == x[0]);
@@ -126,8 +126,8 @@ namespace blas {
 			T a[] = { 1,
 					  2, 3,
 					  4, 5, 6 };
-			tp<T> A(3, a, CblasLower);
-			A = A.transpose();
+			tp<T> A(matrix(3, a), CblasLower, CblasNonUnit);
+			A = transpose(A);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
 			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
@@ -138,7 +138,7 @@ namespace blas {
 			T a[] = { 1, 2, 4,
 						 3, 5,
 							6 };
-			tp<T> A(3, a, CblasUpper);
+			tp<T> A(matrix(3, a), CblasUpper, CblasNonUnit);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
 			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
@@ -149,8 +149,8 @@ namespace blas {
 			T a[] = { 1, 2, 4,
 						 3, 5,
 							6 };
-			tp<T> A(3, a, CblasUpper);
-			A = A.transpose();
+			tp<T> A(matrix(3, a), CblasUpper, CblasNonUnit);
+			A = transpose(A);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
 			ensure(1 * 1                 == x[0]);
@@ -167,17 +167,17 @@ namespace blas {
 	// x = op(A)*x 
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-trmv.html
 	template<class T>
-	inline vector<T> trmv(const tr<T>& a, vector<T> x, CBLAS_DIAG diag = CblasNonUnit)
+	inline vector<T> trmv(const tr<T>& a, vector<T> x)
 	{
 		ensure(a.rows() == a.columns());
 		ensure(a.rows() == x.size());
 
-		mv<T>::tr(CblasRowMajor, a.uplo(), a.trans(), diag, a.rows(), a.data(), a.ld(), x.data(), x.incr());
+		mv<T>::tr(CblasRowMajor, a.uplo(), a.trans(), a.diag(), a.rows(), a.data(), a.ld(), x.data(), x.incr());
 
 		return x;
 	}
 
-	// Computes a matrix-vector product for a symmetric matrix.
+	// Computes a matrix-vector product for a packed symmetric matrix.
 	// x = op(A) x
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-spmv.html
 	template<class T>

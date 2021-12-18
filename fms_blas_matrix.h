@@ -22,6 +22,10 @@ namespace blas {
 		matrix(int r = 0, int c = 0, T* a = nullptr, CBLAS_TRANSPOSE t = CblasNoTrans)
 			: r(r), c(c), a(a), t(t)
 		{ }
+		// square
+		matrix(int n, T* a, CBLAS_TRANSPOSE t = CblasNoTrans)
+			: r(n), c(n), a(a), t(t)
+		{ }
 		matrix(const matrix&) = default;
 		matrix& operator=(const matrix&) = default;
 		matrix(matrix&&) = default;
@@ -163,14 +167,6 @@ namespace blas {
 			return c; // (t == CblasNoTrans) ? c : r;
 		}
 
-		matrix transpose() const
-		{
-			matrix<T> m(*this);
-
-			m.t = blas::transpose(t);
-
-			return m;
-		}
 		vector<T> row(int i) const
 		{
 			return t == CblasTrans ? vector<T>(r, a + i, c) : vector<T>(c, a + i * c, 1);
@@ -238,7 +234,7 @@ namespace blas {
 				ensure(a2);
 				ensure(a2 == a);
 				ensure(a2.equal(a));
-				ensure(a.equal(a.transpose().transpose()));
+				ensure(a.equal(transpose(transpose(a))));
 
 				ensure(a.rows() == 2);
 				ensure(a.columns() == 3);
@@ -248,7 +244,7 @@ namespace blas {
 			}
 			{
 				auto a = matrix<T>(2, 3, _a, CblasTrans).copy(a0);
-				ensure(a.equal(a.transpose().transpose()));
+				ensure(a.equal(transpose(transpose(a))));
 
 				ensure(a.rows() == 3);
 				ensure(a.columns() == 2);
@@ -256,7 +252,7 @@ namespace blas {
 				ensure(a(1, 0) == 2); ensure(a(1, 1) == 5);
 				ensure(a(2, 0) == 3); ensure(a(2, 1) == 6);
 
-				a = matrix<T>(2, 3, _a).transpose().copy(a0);
+				a = transpose(matrix<T>(2, 3, _a)).copy(a0);
 				ensure(a.rows() == 3);
 				ensure(a.columns() == 2);
 				ensure(a(0, 0) == 1); ensure(a(0, 1) == 4);
@@ -265,14 +261,14 @@ namespace blas {
 
 				a(0, 1) = 7;
 				ensure(a(0, 1) == 7);
-				ensure(a.transpose()(1, 0) == 7);
+				ensure(transpose(a)(1, 0) == 7);
 			}
 			{
 				auto a = matrix<T>(2, 3, _a).copy(a0);
 				ensure(a.row(1).equal({ 4, 5, 6 }));
 				ensure(a.column(1).equal({ 2, 5 }));
 
-				a = a.transpose();
+				a = transpose(a);
 				ensure(a.column(1).equal({ 4, 5, 6 }));
 				ensure(a.row(1).equal({ 2, 5 }));
 			}
@@ -294,10 +290,71 @@ namespace blas {
 
 	}; // matrix
 
+	template<class T>
+	inline matrix<T> transpose(matrix<T> m)
+	{
+		m.t = blas::transpose(m.trans());
+
+		return m;
+	}
+
 	// general rectangular matrix
 	template<class T>
 	using ge = matrix<T>;
 
+	class UpLo {
+		CBLAS_UPLO ul;
+	public:
+		UpLo(CBLAS_UPLO ul = CblasLower)
+			: ul(ul)
+		{ }
+		CBLAS_UPLO uplo() const
+		{
+			return ul;
+		}
+		void uplo(CBLAS_UPLO ul_)
+		{
+			ul = ul_;
+		}
+	};
+
+	class Diag  {
+		CBLAS_DIAG d;
+	public:
+		Diag(CBLAS_DIAG d = CblasNonUnit)
+			: d(d)
+		{ }
+		CBLAS_DIAG diag() const
+		{
+			return d;
+		}
+		void diag(CBLAS_DIAG d_)
+		{
+			d = d_;
+		}
+	};
+
+	// matrix with attributes
+	template<class T, class... As>
+	struct matrixas : public matrix<T>, As...
+	{
+		matrixas()
+		{ }
+		matrixas(const matrix<T>& a, As... as)
+			: matrix<T>(a), As(as)...
+		{ }
+		matrixas& operator=(const matrix<T>& a)
+		{
+			matrix<T>::operator=(a);
+
+			return *this;
+		}
+	};
+
+	template<class T>
+	using tp = matrixas<T, UpLo, Diag>;
+
+	/*
 	// triangular packed
 	template<class T>
 	struct tp : public matrix<T> {
@@ -357,18 +414,24 @@ namespace blas {
 			return indexp(i, j);
 		}
 	};
+	*/
 #ifdef _DEBUG
 	template<class T>
 	inline int tp_test()
 	{
 		{
 			T a[] = { 1,2,3,4,5,6 };
-			tp<T> A(2, a, CblasLower);
+			tp<T> A(matrix(2, a), CblasLower, CblasNonUnit);
 			assert(CblasNoTrans == A.trans());
 			assert(CblasLower == A.uplo());
 			assert(CblasNonUnit == A.diag());
 			
 			//assert(1 == t);
+		}
+		{
+			T a[] = { 1,2,3,4,5,6 };
+			tp<T> A(matrix<T>(2, 2, a), CblasLower, CblasNonUnit);
+			assert(A.uplo() == CblasLower);
 		}
 
 		return 0;
@@ -417,6 +480,7 @@ namespace blas {
 		{
 			return ul;
 		}
+		/*
 		T operator()(int i, int j) const
 		{
 			if (CblasLower == ul xor CblasNoTrans == matrix<T>::trans()) {
@@ -426,6 +490,7 @@ namespace blas {
 				return i <= j ? matrix<T>::operator()(i, j) : matrix<T>::operator()(j, i);
 			}
 		}
+		*/
 	};
 	
 } // namespace blas

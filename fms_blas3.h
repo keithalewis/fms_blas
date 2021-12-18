@@ -68,13 +68,13 @@ namespace blas {
 
 			c.reshape(3, 2);
 			std::fill(c.begin(), c.end(), T(-1));
-			c = gemm(id3, a.transpose(), c);
-			ensure(c.equal(a.transpose()));
+			c = gemm(id3, transpose(a), c);
+			ensure(c.equal(transpose(a)));
 
 			c.reshape(3, 2);
 			std::fill(c.begin(), c.end(), T(-1));
-			c = gemm(a.transpose(), id2, c);
-			ensure(c.equal(a.transpose()));
+			c = gemm(transpose(a), id2, c);
+			ensure(c.equal(transpose(a)));
 
 			//c = id2 * a;
 		}
@@ -95,25 +95,14 @@ namespace blas {
 		return b;
 	}
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T> b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(const tr<T>& a, matrix<T> b, T alpha = 1)
 	{
-		return trmm(CblasLeft, uplo, a, b, alpha, diag);
+		return trmm(CblasLeft, a.uplo(), a, b, alpha, a.diag());
 	}
 	template<class T>
-	inline matrix<T>& trmm(matrix<T> b, CBLAS_UPLO uplo, const matrix<T>& a, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T>& trmm(matrix<T> b, const tr<T>& a, T alpha = 1)
 	{
-		return trmm(CblasRight, uplo, a, b, alpha, diag);
-	}
-
-	template<class T>
-	inline matrix<T>& trmm(const tr<T>& a, matrix<T>& b, T alpha = 1)
-	{
-		return trmm(CblasLeft, a.uplo, a, b, alpha, a.diag);
-	}
-	template<class T>
-	inline matrix<T>& trmm(matrix<T>& b, const tr<T>& a, T alpha = 1)
-	{
-		return trmm(CblasRight, a.uplo, a, b, alpha, a.diag);
+		return trmm(CblasRight, a.uplo(), a, b, alpha, a.diag());
 	}
 
 #ifdef _DEBUG
@@ -226,6 +215,7 @@ namespace blas {
 
 		return x;
 	}
+
 	// solve op(A)*X = B
 	template<class T>
 	inline matrix<T>& trsm(CBLAS_UPLO uplo, const matrix<T>& a, matrix<T>& x, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
@@ -241,7 +231,7 @@ namespace blas {
 	template<class T>
 	inline matrix<T>& trsm(const tr<T>& a, matrix<T>& x, T alpha = 1)
 	{
-		return trsm(CblasLeft, a.uplo, a, x, alpha, a.diag);
+		return trsm(CblasLeft, a.uplo(), a, x, alpha, a.diag());
 	}
 	// solve X*op(A) = B
 	template<class T>
@@ -262,12 +252,12 @@ namespace blas {
 			auto b = matrix<T>(2, 2, _b).copy({ 7,8,9,10 });
 			auto x = matrix<T>(2, 2, _x).copy(b);
 
-			trmm(CblasUpper, a, x);
-			trsm(CblasUpper, a, x);
+			trmm(tr(a, CblasUpper), x);
+			trsm(tr(a, CblasUpper), x);
 			ensure(x.equal(b));
 
-			trmm(CblasLower, a, x);
-			trsm(CblasLower, a, x);
+			trmm(tr(a, CblasLower), x);
+			trsm(tr(a, CblasLower), x);
 			ensure(x.equal(b));
 		}
 

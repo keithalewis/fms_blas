@@ -6,6 +6,8 @@
 namespace lapack {
 
 #define LAPACK(X) \
+	X(pftrf) \
+	X(pftrs) \
 	X(potrf) \
 	X(potri) \
 	X(potrs) \
@@ -34,10 +36,52 @@ namespace lapack {
 #undef LAPACK_
 #undef LAPACK
 
+	// BLAS to LAPACK conversion
 	inline char UpLo(CBLAS_UPLO ul)
 	{
-		return ul == CblasUpper ? 'U' : 'L';
+		switch (ul) {
+		case CblasUpper:
+			return 'U';
+		case CblasLower:
+			return 'L';
+		}
+
+		return 0;
 	}
+	inline char Trans(CBLAS_TRANSPOSE trans)
+	{
+		switch (trans) {
+		case CblasTrans:
+			return 'T';
+		case CblasNoTrans:
+			return 'N';
+		case CblasConjTrans:
+			return 'C';
+		}
+
+		return 0;
+	}
+
+	// Computes the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix using the Rectangular Full Packed (RFP) format.
+	// A = U'U or LL'
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-computational-routines/matrix-factorization-lapack-computational-routines/pftrf.html#pftrf 
+	template<class X>
+	inline int pftrf(CBLAS_UPLO uplo, blas::matrix<X>& a)
+	{
+		return lapack<X>::pftrf(LAPACK_ROW_MAJOR, Trans(a.trans()), UpLo(uplo), a.rows(), a.data());
+	}
+
+	// Solves a system of linear equations with a Cholesky-factored symmetric (Hermitian) positive-definite coefficient matrix using the Rectangular Full Packed (RFP) format.
+	// Solve A * X = B for X where A is positive definite.
+	// The columns of B are the solutions on exit.
+	// Before calling this routine, you must call ?pftrf to compute the Cholesky factorization of A.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-computational-routines/solve-sys-of-linear-equations-lapack-computation/pftrs.html
+	template<class X>
+	inline int pftrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::matrix<X>& b)
+	{
+		return lapack<X>::pftrs(LAPACK_ROW_MAJOR, Trans(a.trans()), UpLo(uplo), a.rows(), b.ld(), a.data(), a.ld(), b.data(), b.ld());
+	}
+
 
 	// Computes the Cholesky factorization of a symmetric (Hermitian) positive-definite matrix.
 	// A = U'U or LL'
@@ -174,14 +218,14 @@ namespace lapack {
 			T a[] = { 1,0,2,13 };
 			T ap[3];
 			blas::packl(2, a, ap);
-			blas::tp<T> a_(2, ap, CblasLower);
+			blas::tp<T> a_(blas::matrix<T>(2, ap), CblasLower, CblasNonUnit);
 			assert(0 == pptrf(a_));
 			assert(1 == ap[0]);
 			assert(2 == ap[1]);
 			assert(3 == ap[2]);
 
 			a[1] = a[2];
-			blas::tp<T> b(2, a, CblasLower);
+			blas::tp<T> b(blas::matrix<T>(2, a), CblasLower, CblasNonUnit);
 			assert(0 == pptrs(a_, b));
 			assert(1 == a[0]);
 			assert(0 == a[1]);
@@ -192,14 +236,14 @@ namespace lapack {
 			T a[] = { 1,2,0,13 };
 			T ap[3];
 			blas::packu(2, a, ap);
-			blas::tp<T> a_(2, ap, CblasUpper);
+			blas::tp<T> a_(blas::matrix(2, ap), CblasUpper, CblasNonUnit);
 			assert(0 == pptrf(a_));
 			assert(1 == ap[0]);
 			assert(2 == ap[1]);
 			assert(3 == ap[2]);
 
 			a[2] = a[1]; 
-			blas::tp<T> b(2, a, CblasUpper);
+			blas::tp<T> b(blas::matrix<T>(2, a), CblasUpper, CblasNonUnit);
 			assert(0 == pptrs(a_, b));
 			assert(1 == a[0]);
 			assert(0 == a[1]);
