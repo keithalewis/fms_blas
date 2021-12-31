@@ -12,7 +12,10 @@ namespace blas {
 #define CBLAS1(X) \
 	X(asum) \
 	X(axpy) \
+	X(copy) \
 	X(dot) \
+	X(nrm2) \
+	X(rot) \
 
 #define CBLAS1_I(X) \
 	X(amax) \
@@ -47,6 +50,35 @@ namespace blas {
 	{
 		return cblas<std::remove_cv_t<T>>::iamax(x.size(), x.data(), x.incr());
 	}
+	template<class T>
+	inline T max(const vector<T>& x)
+	{
+		T m = -std::numeric_limits<T>::max();
+
+		for (int i = 0; i < x.size(); ++i) {
+			if (x[i] > m) {
+				m = x[i];
+			}
+		}
+
+		return m;
+	}
+	// y = max(x, y)
+	template<class T>
+	inline int max(const vector<T>& x, vector<T>& y)
+	{
+		int n = 0;
+
+		for (int i = 0; i < x.size() && i < y.size(); ++i) {
+			if (x[i] > y[i]) {
+				++n;
+				y[i] = x[i];
+			}
+		}
+
+		return n;
+	}
+
 
 	// arg min |x_i|
 	template<class T>
@@ -80,6 +112,33 @@ namespace blas {
 		return 0;
 	}
 #endif // _DEBUG
+	template<class T>
+	inline T min(const vector<T>& x)
+	{
+		T m = std::numeric_limits<T>::max();
+
+		for (int i = 0; i < x.size(); ++i) {
+			if (x[i] < m) {
+				m = x[i];
+			}
+		}
+
+		return m;
+	}
+	// y = min(x, y)
+	template<class T>
+	inline int min(const vector<T>& x, vector<T>& y)
+	{
+		int n = 0;
+
+		for (int i = 0; i < x.size() && i < y.size(); ++i) {
+			if (x[i] < y[i]) {
+				y[i] = x[i];
+			}
+		}
+
+		return n;
+	}
 
 	// sum_i |x_i|
 	template<class T>
@@ -120,11 +179,19 @@ namespace blas {
 	}
 #endif // _DEBUG
 
+	// Copies a x to y.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-1-routines-and-functions/cblas-copy.html
+	template<class T, class U>
+	inline void copy(const vector<T>& x, vector<U>& y)
+	{
+		cblas<std::remove_cv_t<T>>::copy(x.size(), x.data(), x.incr(), y.data(), y.incr());
+	}
+
 	// x' y
 	template<class T, class U>
 	inline auto dot(const vector<T>& x, const vector<U>& y)
 	{
-		return cblas< std::remove_cv_t<T>>::dot(x.size(), x.data(), x.incr(), y.data(), y.incr());
+		return cblas<std::remove_cv_t<T>>::dot(x.size(), x.data(), x.incr(), y.data(), y.incr());
 	}
 #ifdef _DEBUG
 	template<class T>
@@ -155,35 +222,20 @@ namespace blas {
 	template<class T>
 	inline T nrm2(const vector<T>& x)
 	{
-		std::remove_const_t<T> s = std::numeric_limits<T>::quiet_NaN();
-
-		if constexpr (is_float<T>) {
-			s = cblas_snrm2(x.size(), x.data(), x.incr());
-		}
-		if constexpr (is_double<T>) {
-			s = cblas_dnrm2(x.size(), x.data(), x.incr());
-		}
-
-		return s;
+		return cblas<T>::nrm2(x.size(), x.data(), x.incr());
 	}
 
-	// x' = c x + y, y' = c y - s x
+	// x' = c x + s y, y' = c y - s x
 	template<class T>
 	inline void rot(vector<T> x, vector<T> y, T c, T s)
 	{
-		if constexpr (is_float<T>) {
-			cblas_srot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
-		}
-		if constexpr (is_double<T>) {
-			cblas_drot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
-		}
+		blas<T>::rot(x.size(), x.data(), x.incr(), y.data(), y.incr(), c, s);
 	}
 	template<class T>
 	inline void rot(vector<T> x, vector<T> y, T theta)
 	{
 		rot(x, y, cos(theta), sin(theta));
 	}
-
 
 	template<class T>
 	inline void swap(vector<T> x, vector<T> y)

@@ -24,6 +24,10 @@ namespace blas {
 	//	requires std::is_integral_v<T>
 	inline T xmod(T x, T y)
 	{
+		if (y == 0) {
+			return 0;
+		}
+
 		T z = x % y;
 
 		return z >= 0 ? z : z + y;
@@ -84,7 +88,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		int capacity() const
 		{
-			return n * abs(dn);
+			return std::max(1, n * abs(dn));
 		}
 		pointer data()
 		{
@@ -206,32 +210,28 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// take from front (i > 0) or back (i < 0)
-		vector& take(int i)
+		vector take(int i)
 		{
 			i = std::clamp(i, -n, n);
 
 			if (i >= 0) {
-				n = i;
+				return vector(i, v, dn);
 			}
 			else {
-				n = -i;
-				v += n + i * abs(dn);
+				return vector(-i, v + n + i * abs(dn));
 			}
-
-			return *this;
 		}
 
 		// drop from front (i > 0) or back (i < 0)
-		vector& drop(int i)
+		vector drop(int i) const
 		{
 			i = std::clamp(i, -n, n);
 
 			if (i > 0) {
-				n -= i;
-				v += i * abs(dn);
+				return vector(n - i, v + i * abs(dn), dn);
 			}
 			else if (i < 0) {
-				n += i;
+				return vector(n + i, v, dn);
 			}
 
 			return *this;

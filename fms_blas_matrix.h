@@ -351,6 +351,14 @@ namespace blas {
 		}
 	};
 
+	template<class T, class... As>
+	inline matrixas<T, As...> transpose(matrixas<T, As...> m)
+	{
+		m.t = blas::transpose(m.t);
+
+		return m;
+	}
+
 	// packed triangular
 	template<class T>
 	using tp = matrixas<T, UpLo, Diag>;

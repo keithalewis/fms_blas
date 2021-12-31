@@ -19,7 +19,7 @@ namespace blas {
 		vector_alloc(int n, int dn = 1)
 			: vector<T>(n, nullptr, dn)
 		{
-			vector<T>::v = alloc.allocate(n * abs(dn));
+			vector<T>::v = alloc.allocate(std::max(1, n * abs(dn)));
 		}
 		vector_alloc(int n, const T* v, int dn)
 			: vector_alloc<T>(n, dn)

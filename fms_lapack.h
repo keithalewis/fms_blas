@@ -1,4 +1,4 @@
-// fms_lapack.h - LAPACK wrappers
+﻿// fms_lapack.h - LAPACK wrappers
 #pragma once
 #include <mkl_lapacke.h>
 #include "fms_blas.h"
@@ -13,6 +13,8 @@ namespace lapack {
 	X(potrs) \
 	X(pptrf) \
 	X(pptrs) \
+	X(gglse) \
+	X(ggglm) \
 
 #define LAPACK_(T, F) static constexpr decltype(LAPACKE_##T##F)* F = LAPACKE_##T##F;
 
@@ -106,8 +108,8 @@ namespace lapack {
 	// The columns of B are the solutions on exit.
 	// Before calling this routine, you must call ?potrf to compute the Cholesky factorization of A.
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-computational-routines/solve-sys-of-linear-equations-lapack-computation/potrs.html
-	template<class X>
-	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::matrix<X>& b)
+	template<class X, class Y>
+	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::matrix<Y>& b)
 	{
 		return lapack<X>::potrs(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), b.ld(), a.data(), a.ld(), b.data(), b.ld());
 	}
@@ -256,5 +258,26 @@ namespace lapack {
 	}
 #endif // _DEBUG
 
+	// The routine solves the linear equality-constrained least squares (LSE) problem:
+	// minimize || A * x - c ||_2 subject to B * x = d
+	// where A is an m x n matrix, B is a p x n matrix, c is a given m vector, and d is a given p vector.
+	// It is assumed that p ≤ n ≤ m+p, and rank(B) = p, rank([A;B]) = n.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-least-squares-and-eigenvalue-problem/lapack-least-squares-eigenvalue-problem-driver/gen-linear-least-squares-lls-problem-lapack-driver/gglse.html#gglse
+	template<class T>
+	inline int gglse(blas::ge<T>& a, blas::ge<T>& b, blas::vector<T>& c, blas::vector<T>& d, blas::vector<T>& x)
+	{
+		return lapack<T>::gglse(LAPACK_ROW_MAJOR, a.rows(), a.columns(), b.columns(), a.data(), a.ld(), b.data(), b.ld(), c.data(), d.data(), x.data());
+	}
+
+	// The routine solves a general Gauss-Markov linear model (GLM) problem:
+	// minimizex ||y||_2 subject to d = A x + B y
+	// where A is an n x m matrix, B is an n x p matrix, and d is a given n vector.
+	// It is assumed that m ≤ n ≤ m + p, and rank(A) = m and rank([A;B]) = n.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-least-squares-and-eigenvalue-problem/lapack-least-squares-eigenvalue-problem-driver/gen-linear-least-squares-lls-problem-lapack-driver/ggglm.html#ggglm
+	template<class T>
+	inline int ggglm(blas::ge<T>& a, blas::ge<T>& b, blas::ge<T>& d, blas::vector<T>& x, blas::vector<T>& y)
+	{
+		return lapack<T>::ggglm(LAPACK_ROW_MAJOR, a.rows(), a.columns(), b.columns(), a.data(), a.ld(), b.data(), b.ld(), d.data(), x.data(), y.data());
+	}
 
 } // namespace lapack

@@ -304,9 +304,10 @@ namespace blas {
 } // namespace blas
 
 template<class T>
-inline auto operator*(const blas::matrix<T>& a, const blas::matrix<T>& b)
+inline blas::matrix_alloc<T> operator*(const blas::matrix<T>& a, const blas::matrix<T>& b)
 {
 	blas::matrix_alloc<T> c(a.rows(), b.columns());
-	
-	return blas::gemm(a, b, c);
+	blas::gemm(a, b, c);
+
+	return c;
 }
