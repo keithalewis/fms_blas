@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="blas::vector&lt;*&gt;">
+    <DisplayString>{{v[{n}+{dn}] = {v,[n]na}}}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>n * dn</Size>
+        <ValuePointer>v</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="blas::matrix&lt;*&gt;">
+    <DisplayString>{{a[{r}x{c}]{t} = {a,[r*c]na}}}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>r * c</Size>
+        <ValuePointer>a</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

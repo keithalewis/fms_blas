@@ -69,4 +69,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="blas.natvis" />
+  </ItemGroup>
 </Project>
