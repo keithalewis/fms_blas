@@ -88,7 +88,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		int capacity() const
 		{
-			return std::max(1, n * abs(dn));
+			return n * std::max(1, abs(dn));
 		}
 		pointer data()
 		{
@@ -301,14 +301,14 @@ Non-owning strided view of array of T tailored to CBLAS.
 			{
 				T _v[] = { 1,2,3 };
 				vector<T> v(_v);
-				v.take(2); // {1, 2}
-				ensure(v.size() == 2);
-				ensure(v[0] == 1);
-				v.drop(-1); // {1}
-				ensure(v.size() == 1);
-				ensure(v[0] = 1);
-				v.drop(10);
-				ensure(v.size() == 0);
+				auto vt = v.take(2); // {1, 2}
+				ensure(vt.size() == 2);
+				ensure(vt[0] == 1);
+				auto vd = vt.drop(-1); // {1}
+				ensure(vd.size() == 1);
+				ensure(vd[0] = 1);
+				auto vdd = vd.drop(10);
+				ensure(vdd.size() == 0);
 			}
 			{
 				T _v[6];

@@ -16,15 +16,20 @@ namespace blas {
 		vector_alloc()
 			: vector<T>(0, nullptr, 0)
 		{ }
-		vector_alloc(int n, int dn = 1)
-			: vector<T>(n, nullptr, dn)
+		vector_alloc(int n_, int dn_ = 1)
+			: vector<T>(n_, nullptr, dn_)
 		{
-			vector<T>::v = alloc.allocate(std::max(1, n * abs(dn)));
+			vector<T>::v = alloc.allocate(std::max(1, n_ * abs(dn_)));
 		}
-		vector_alloc(int n, const T* v, int dn)
-			: vector_alloc<T>(n, dn)
+		vector_alloc(int n_, const T* v_, int dn_)
+			: vector_alloc<T>(n_, dn_)
 		{
-			copy(n, v, dn);
+			if (n_ != 0) {
+				copy(n_, v_, dn_);
+			}
+			else {
+				vector<T>::v = nullptr;
+			}
 		}
 		vector_alloc(const vector<T>& x)
 			: vector_alloc<T>(x.size(), x.data(), x.incr())
