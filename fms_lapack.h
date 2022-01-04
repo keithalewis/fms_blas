@@ -13,6 +13,7 @@ namespace lapack {
 	X(potrs) \
 	X(pptrf) \
 	X(pptrs) \
+	X(gesv)  \
 	X(gglse) \
 	X(ggglm) \
 
@@ -257,6 +258,19 @@ namespace lapack {
 		return 0;
 	}
 #endif // _DEBUG
+
+	// Computes the solution to the system of linear equations with a square coefficient matrix Aand multiple right - hand sides.
+	// The routine solves for X the system of linear equations A*X = B, 
+	// where A is an n-by-n matrix, the columns of matrix B are individual right-hand sides,
+	// and the columns of X are the corresponding solutions.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/lapack-routines/lapack-linear-equation-routines/lapack-linear-equation-driver-routines/gesv.html
+	template<class T>
+	int gesv(blas::ge<T>& a, blas::ge<T>& b, int* ipiv = nullptr)
+	{
+		return lapack<T>::gesv(LAPACK_ROW_MAJOR, a.rows(), b.columns(), a.data(), a.ld(), 
+			ipiv ? ipiv : blas::vector_alloc<int>(a.rows()).data(), b.data(), b.ld());
+	}
+
 
 	// The routine solves the linear equality-constrained least squares (LSE) problem:
 	// minimize || A * x - c ||_2 subject to B * x = d
