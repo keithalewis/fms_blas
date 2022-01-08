@@ -229,14 +229,14 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return *this;
 		}
 
-		vector& mask(const vector<T>& m)
+		vector& mask(const vector<T>& m, const vector<T>& w)
 		{
-			ensure(size() == m.size());
+			ensure(m.size() == w.size());
 
 			int i = 0;
 			for (int j = 0; j < m.size(); ++j) {
 				if (m[j]) {
-					operator[](i) = operator[](j);
+					operator[](i) = w[j];
 					++i;
 				}
 			}
@@ -244,21 +244,29 @@ Non-owning strided view of array of T tailored to CBLAS.
 
 			return *this;
 		}
-		// distribute elements using mask to vector
-		void spread(const vector<T>& m, vector<T>&& w)
+		vector& mask(const vector<T>& m)
 		{
-			ensure(m.size() == w.size());
+			return mask(m, *this);
+		}
 
-			int i = 0;
-			for (int j = 0; j < m.size(); ++j) {
-				if (m[j]) {
-					w[j] = operator[](i);
-					++i;
+		// distribute elements using mask to vector
+		vector& spread(const vector<T>& m, const vector<T>& w)
+		{
+			ensure(size() == m.size());
+			// ensure(w.size() == sum(m));
+
+			int j = 0;
+			for (int i = 0; i < size(); ++i) {
+				if (m[i]) {
+					operator[](i) = w[j];
+					++j;
 				}
 				else {
-					w[j] = 0;
+					operator[](i) = 0;
 				}
 			}
+
+			return *this;
 		}
 
 #ifdef _DEBUG
@@ -373,8 +381,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 				T m[] = { 1, 0, 1 };
 				T w[3];
 
-				vector<T>(v).spread(vector<T>(m), vector<T>(w));
+				vector<T>(w).spread(vector<T>(m), vector<T>(v));
 				assert(vector<T>(w).equal({ 1, 0, 2 }));
+				vector<T> w_(w);
+				w_.mask(vector<T>(m));
+				assert(w_.equal(vector<T>(v)));
 			}
 
 			return 0;

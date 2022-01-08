@@ -43,6 +43,7 @@ namespace blas {
 		ensure(a.columns() == x.size());
 		ensure(a.rows() == y.size());
 
+		// uses a.r and a.c, not a.rows() and a.columns()
 		mv<T>::ge(CblasRowMajor, a.trans(), a.r, a.c, alpha, a.data(), a.c, x.data(), x.incr(), beta, y.data(), y.incr());
 
 		return y;
