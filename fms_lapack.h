@@ -114,6 +114,13 @@ namespace lapack {
 	{
 		return lapack<X>::potrs(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), b.ld(), a.data(), a.ld(), b.data(), b.ld());
 	}
+	template<class X, class Y>
+	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::vector<Y>& b)
+	{
+		blas::matrix<Y> b_(b.size(), 1);
+
+		return potrs(uplo, a, b_);
+	}
 
 #ifdef _DEBUG
 	template<class T>
@@ -209,6 +216,13 @@ namespace lapack {
 	inline int pptrs(const blas::tp<T>& a, blas::matrix<U>& b)
 	{
 		return lapack<T>::pptrs(LAPACK_ROW_MAJOR, UpLo(a.uplo()), a.rows(), b.ld(), a.data(), b.data(), b.ld());
+	}
+	template<class T, class U>
+	inline int pptrs(const blas::tp<T>& a, blas::vector<U>& b)
+	{
+		blas::matrix<double> b_(b.size(), 1, b.data());
+
+		return pptrs(a, b_);
 	}
 #ifdef _DEBUG
 	template<class T>

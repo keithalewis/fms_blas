@@ -179,7 +179,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		// assign values to data
 		vector& copy(int n_, const T* v_, int dn_ = 1)
 		{
-			ensure(n == n_);
+			ensure(n >= n_);
 
 			if constexpr (is_float<T>)
 				cblas_scopy(n_, v_, dn_, v, dn);
