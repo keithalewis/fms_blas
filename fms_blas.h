@@ -23,23 +23,46 @@ namespace blas {
 	template<class T>
 	constexpr bool is_double = std::is_same_v<double, std::remove_cv_t<T>>;
 
+	template<class X, X c>
+	class constant : public blas::vector<X> {
+		X c_;
+	public:
+		constant(int n)
+			: blas::vector<X>(n, nullptr, 0), c_(c)
+		{
+			blas::vector<X>::v = &c_;
+		}
+	};
+
 	// n 0's
 	template<class X>
 	inline constexpr blas::vector<X> zero(int n)
 	{
-		static X zero = 0;
-
-		return blas::vector<X>(n, &zero, 0);
+		return constant<X, 0>(n);
 	}
 
 	// n 1's
 	template<class X>
 	inline constexpr blas::vector<X> one(int n)
 	{
-		static X one = 1;
-
-		return blas::vector<X>(n, &one, 0);
+		return constant<X, 1>(n);
 	}
+
+#ifdef _DEBUG
+	template<class X>
+	inline int constant_test()
+	{
+		{
+			constant<X, 2> two(3);
+			assert(3 == two.size());
+			assert(2 == two[0]);
+			assert(2 == two[1]);
+			assert(2 == two[2]);
+		}
+
+		return 0;
+	}
+#endif // _DEBUG
 
 	// e_j = (0,...,1_j,...0)
 	template<class X>

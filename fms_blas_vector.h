@@ -110,17 +110,9 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// usable in range for
-		auto begin()
-		{
-			return *this;
-		}
 		const auto begin() const
 		{
 			return *this;;
-		}
-		auto end()
-		{
-			return vector(0, v + n * abs(dn), dn);
 		}
 		const auto end() const
 		{
@@ -210,7 +202,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// take from front (i > 0) or back (i < 0)
-		vector take(int i)
+		vector take(int i) const
 		{
 			i = std::clamp(i, -n, n);
 
@@ -235,6 +227,38 @@ Non-owning strided view of array of T tailored to CBLAS.
 			}
 
 			return *this;
+		}
+
+		vector& mask(const vector<T>& m)
+		{
+			ensure(size() == m.size());
+
+			int i = 0;
+			for (int j = 0; j < m.size(); ++j) {
+				if (m[j]) {
+					operator[](i) = operator[](j);
+					++i;
+				}
+			}
+			n = i;
+
+			return *this;
+		}
+		// distribute elements using mask to vector
+		void spread(const vector<T>& m, vector<T>&& w)
+		{
+			ensure(m.size() == w.size());
+
+			int i = 0;
+			for (int j = 0; j < m.size(); ++j) {
+				if (m[j]) {
+					w[j] = operator[](i);
+					++i;
+				}
+				else {
+					w[j] = 0;
+				}
+			}
 		}
 
 #ifdef _DEBUG
@@ -343,6 +367,14 @@ Non-owning strided view of array of T tailored to CBLAS.
 				auto v_ = vector<const T>(v);
 				//v_[1] = 4; // read only
 				assert(2 == v[1]);
+			}
+			{
+				T v[] = { 1, 2 };
+				T m[] = { 1, 0, 1 };
+				T w[3];
+
+				vector<T>(v).spread(vector<T>(m), vector<T>(w));
+				assert(vector<T>(w).equal({ 1, 0, 2 }));
 			}
 
 			return 0;

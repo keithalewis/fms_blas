@@ -9,6 +9,7 @@ template<class X>
 int fms_blas_test()
 {
 #ifdef _DEBUG
+	blas::constant_test<X>();
 	blas::pack_test<X>();
 	blas::unpack_test<X>();
 	blas::vector<X>::test();
