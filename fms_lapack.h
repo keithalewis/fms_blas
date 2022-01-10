@@ -104,7 +104,7 @@ namespace lapack {
 				sprintf_s(buf, "%s: the leading minor of order %d is not positive-definite", __FUNCTION__, ret);
 			}
 
-			ensure(!buf);
+			throw std::runtime_error(buf);
 		}
 
 		return ret;
@@ -128,7 +128,7 @@ namespace lapack {
 				sprintf_s(buf, "%s: the %d-th diagonal element of the Cholesky factor is zeroe", __FUNCTION__, ret);
 			}
 
-			ensure(!buf);
+			throw std::runtime_error(buf);
 		}
 
 		return ret;
@@ -151,7 +151,7 @@ namespace lapack {
 				sprintf_s(buf, "%s: parameter %d had an illegal value.", __FUNCTION__, -ret);
 			}
 
-			ensure(!buf);
+			throw std::runtime_error(buf);
 		}
 
 		return ret;

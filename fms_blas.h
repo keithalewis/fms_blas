@@ -1,5 +1,6 @@
 // fms_blas.h - BLAS wrappers
 #pragma once
+#include <algorithm>
 #include <type_traits>
 #pragma warning(disable: 26812)
 #include "fms_blas_pack.h"
@@ -63,6 +64,17 @@ namespace blas {
 		return 0;
 	}
 #endif // _DEBUG
+
+	template<class F, class X>
+	inline void apply(const F& f, const vector<X>& v, vector<X>& w)
+	{
+		std::transform(v.begin(), v.end(), w.begin(), f);
+	}
+	template<class F, class X>
+	inline void apply(const F& f, vector<X>& v)
+	{
+		apply(f, v, v);
+	}
 
 	// e_j = (0,...,1_j,...0)
 	template<class X>
