@@ -8,28 +8,25 @@ namespace blas {
 	// vector backed by array
 	template<class T>
 	struct vector_alloc : public vector<std::remove_cv_t<T>> {
+		size_t capacity;
 		std::allocator<T> alloc;
 		//using alloc = std::allocator_traits<A>;
 		using vector<T>::copy;
-		using vector<T>::capacity;
 
 		vector_alloc()
-			: vector<T>(0, nullptr, 0)
+			: vector<T>(0, nullptr, 0), capacity(0)
 		{ }
 		vector_alloc(int n_, int dn_ = 1)
 			: vector<T>(n_, nullptr, dn_)
 		{
-			vector<T>::v = alloc.allocate(std::max(1, n_ * abs(dn_)));
+			capacity = n_ * abs(dn_);
+			if (capacity)
+				vector<T>::v = alloc.allocate(capacity);
 		}
 		vector_alloc(int n_, const T* v_, int dn_)
 			: vector_alloc<T>(n_, dn_)
 		{
-			if (n_ != 0) {
-				copy(n_, v_, dn_);
-			}
-			else {
-				vector<T>::v = nullptr;
-			}
+			copy(n_, v_, dn_);
 		}
 		vector_alloc(const vector<T>& x)
 			: vector_alloc<T>(x.size(), x.data(), x.incr())
@@ -42,8 +39,11 @@ namespace blas {
 		vector_alloc& operator=(const vector_alloc& x)
 		{
 			if (this != &x) {
-				alloc.deallocate(vector<T>::v, capacity());
-				vector<T>::v = alloc.allocate(x.capacity());
+				if (capacity)
+					alloc.deallocate(vector<T>::v, capacity);
+				vector<T>::n = x.n;
+				vector<T>::dn = x.dn;
+				vector<T>::v = alloc.allocate(x.capacity);
 				copy(x);
 			}
 
@@ -52,26 +52,26 @@ namespace blas {
 		vector_alloc(vector_alloc&& x) noexcept
 			: vector<T>(x)
 		{
-			x.operator=(vector<T>{});
+			vector<T>::n = std::exchange(x.n, 0);
+			vector<T>::dn = std::exchange(x.dn, 0);
+			vector<T>::v = std::exchange(x.v, nullptr);
 		}
 		vector_alloc& operator=(vector_alloc&& x)
 		{
 			if (this != &x) {
-				if (capacity())
-					alloc.deallocate(vector<T>::v, capacity());
-				vector<T>::n = x.n;
-				vector<T>::dn = x.dn;
-				vector<T>::v = x.v;
-				x.n = x.dn = 0;
-				x.v = nullptr;
+				if (capacity)
+					alloc.deallocate(vector<T>::v, capacity);
+				vector<T>::n = std::exchange(x.n, 0);
+				vector<T>::dn = std::exchange(x.dn, 0);
+				vector<T>::v = std::exchange(x.v, nullptr);
 			}
 
 			return *this;
 		}
 		~vector_alloc()
 		{
-			if (capacity())
-				alloc.deallocate(vector<T>::v, capacity());
+			if (capacity)
+				alloc.deallocate(vector<T>::v, capacity);
 		}
 
 #ifdef _DEBUG

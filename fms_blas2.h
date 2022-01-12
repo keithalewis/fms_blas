@@ -210,6 +210,7 @@ namespace blas {
 
 #define BLAS_SV(X) \
 	X(tr) \
+	X(tp) \
 
 #define BLAS_SV_(T, F) static constexpr decltype(cblas_##T##F##sv)* F = cblas_##T##F##sv;
 
@@ -234,11 +235,22 @@ namespace blas {
 
 	// Solves a system of linear equations whose coefficients are in a triangular matrix.
 	// Solve op(A) x = b for x where A is triangular and x = b on entry.
-	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-trsv.html
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-tpsv.html
 	template<class T>
 	inline vector<T> trsv(const tr<T>& a, vector<T> x)
 	{
 		sv<T>::tr(CblasRowMajor, a.uplo(), a.trans(), a.diag(), a.rows(), a.data(), a.ld(), x.data(), x.incr());
+
+		return x;
+	}
+
+	// Solves a system of linear equations whose coefficients are in a triangular packed matrix.
+	// Solve op(A) x = b for x where A is triangular in packed form and x = b on entry.
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-2-routines/cblas-trsv.html
+	template<class T>
+	inline vector<T> tpsv(const tp<T>& a, vector<T> x)
+	{
+		sv<T>::tp(CblasRowMajor, a.uplo(), a.trans(), a.diag(), a.rows(), a.data(), x.data(), x.incr());
 
 		return x;
 	}

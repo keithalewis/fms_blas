@@ -30,7 +30,7 @@ namespace blas {
 
 		T z = x % y;
 
-		return z >= 0 ? z : z + y;
+		return z + (z < 0)*y;
 	}
 #pragma warning(pop)
 
@@ -85,10 +85,6 @@ Non-owning strided view of array of T tailored to CBLAS.
 		int incr() const
 		{
 			return dn;
-		}
-		int capacity() const
-		{
-			return n * std::max(1, abs(dn));
 		}
 		pointer data()
 		{
@@ -171,12 +167,9 @@ Non-owning strided view of array of T tailored to CBLAS.
 		// assign values to data
 		vector& copy(int n_, const T* v_, int dn_ = 1)
 		{
-			ensure(n >= n_);
-
-			if constexpr (is_float<T>)
-				cblas_scopy(n_, v_, dn_, v, dn);
-			if constexpr (is_double<T>)
-				cblas_dcopy(n_, v_, dn_, v, dn);
+			for (int i_ = 0; i_ < n_; ++i_) {
+				operator[](i_) = v_[i_ * dn_];
+			}
 
 			return *this;
 		}
@@ -229,6 +222,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return *this;
 		}
 
+		// select elements using mask
 		vector& mask(const vector<T>& m, const vector<T>& w)
 		{
 			ensure(m.size() == w.size());

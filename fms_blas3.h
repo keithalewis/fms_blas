@@ -2,10 +2,20 @@
 #pragma once
 #include "fms_blas2.h"
 
+#define BLAS_DECL(T, N, M) static constexpr decltype(cblas_##T##N##M)* F = cblas_##T##N##M;
+
+#define BLAS_FUNC(X) \
+	X(ge, mm) \
+	X(tr, mm) \
+
+// ...
+
 namespace blas {
 	//
 	// BLAS level 3
 	// 
+
+	// X(ge,mm) ...
 
 #define BLAS_MM(X) \
 	X(ge) \
@@ -237,7 +247,7 @@ namespace blas {
 	template<class T>
 	inline matrix<T>& trsm(matrix<T>& x, const tr<T>& a, T alpha = 1)
 	{
-		return trsm(CblasRight, a.uplo, a, x, alpha, a.diag);
+		return trsm(CblasRight, a.uplo(), a, x, alpha, a.diag);
 	}
 
 #ifdef _DEBUG
@@ -265,24 +275,17 @@ namespace blas {
 	}
 #endif // _DEBUG
 
-	// Performs a Hermitian rank-k update.
+	// Performs a symmetric rank-k update.
 	// C = alpha A * op(A) + beta C 
+	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-3-routines/cblas-syrk.html
 	template<class T>
-	inline matrix<T> syrk(CBLAS_UPLO uplo, const matrix<T>& a, T* _c, T alpha = 1, T beta = 0)
+	inline matrix<T> syrk(const matrix<T>& a, sy<T>& c, T alpha = 1, T beta = 0)
 	{
-		int n = a.rows();
-		int k = a.columns();
-	
-		matrix<T> c(n, n, _c);
-
-		int lda = a.ld();
-		int ldc = c.ld();
-
 		if constexpr (std::is_same_v<T, float>) {
-			cblas_ssyrk(CblasRowMajor, uplo, a.trans(), n, k, alpha, a.data(), lda, beta, c.data(), ldc);
+			cblas_ssyrk(CblasRowMajor, c.uplo(), a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(), beta, c.data(), c.ld());
 		}
 		if constexpr (std::is_same_v<T, double>) {
-			cblas_dsyrk(CblasRowMajor, uplo, a.trans(), n, k, alpha, a.data(), lda, beta, c.data(), ldc);
+			cblas_dsyrk(CblasRowMajor, c.uplo(), a.trans(), a.rows(), a.columns(), alpha, a.data(), a.ld(), beta, c.data(), c.ld());
 		}
 
 		return c;
