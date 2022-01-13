@@ -19,7 +19,7 @@ namespace blas {
 		vector_alloc(int n_, int dn_ = 1)
 			: vector<T>(n_, nullptr, dn_)
 		{
-			capacity = n_ * abs(dn_);
+			capacity = dn_ == 0 ? 1 : n_ * abs(dn_);
 			if (capacity)
 				vector<T>::v = alloc.allocate(capacity);
 		}

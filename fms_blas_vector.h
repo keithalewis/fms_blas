@@ -181,7 +181,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		// auto v = vector<T>(n, _v, dn).copy(w);
 		vector& copy(const vector& w)
 		{
-			return copy(w.size(), w.data(), w.incr());
+			return this == &w ? *this : copy(w.size(), w.data(), w.incr());
 		}
 
 		// set all values to x
