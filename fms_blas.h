@@ -2,6 +2,7 @@
 #pragma once
 #include <algorithm>
 #include <type_traits>
+#include <mkl_cblas.h>
 #pragma warning(disable: 26812)
 #include "fms_blas_pack.h"
 #include "fms_blas_vector_alloc.h"

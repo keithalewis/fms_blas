@@ -100,19 +100,19 @@ namespace blas {
 	// b = alpha op(a)*b or b = alpha b*op(a) using b in place
 	// https://www.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/top/blas-and-sparse-blas-routines/blas-routines/blas-level-3-routines/cblas-trmm.html
 	template<class T>
-	inline matrix<T>& trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T> b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
+	inline matrix<T> trmm(CBLAS_SIDE lr, CBLAS_UPLO uplo, const matrix<T>& a, matrix<T> b, T alpha = 1, CBLAS_DIAG diag = CblasNonUnit)
 	{
 		mm<T>::tr(CblasRowMajor, lr, uplo, a.trans(), diag,	b.rows(), b.columns(), alpha, a.data(), a.ld(), b.data(), b.ld());
 
 		return b;
 	}
 	template<class T>
-	inline matrix<T>& trmm(const tr<T>& a, matrix<T> b, T alpha = 1)
+	inline matrix<T> trmm(const tr<T>& a, matrix<T> b, T alpha = 1)
 	{
 		return trmm(CblasLeft, a.uplo(), a, b, alpha, a.diag());
 	}
 	template<class T>
-	inline matrix<T>& trmm(matrix<T> b, const tr<T>& a, T alpha = 1)
+	inline matrix<T> trmm(matrix<T> b, const tr<T>& a, T alpha = 1)
 	{
 		return trmm(CblasRight, a.uplo(), a, b, alpha, a.diag());
 	}
