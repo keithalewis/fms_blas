@@ -17,9 +17,6 @@ void xerbla(const char* srname, const int* info, const int);
 
 namespace blas {
 
-	constexpr decltype(cblas_sdot)* sd = cblas_sdot;
-
-
 	// mod returning in range [0, y) 
 	constexpr int xmod(int x, int y) noexcept
 	{

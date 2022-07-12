@@ -48,6 +48,9 @@
     <ClInclude Include="fms_blas_pack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="blas_concept.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

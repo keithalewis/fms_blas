@@ -163,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="blas_concept.h" />
     <ClInclude Include="fms_blas_pack.h" />
     <ClInclude Include="ensure.h" />
     <ClInclude Include="fms_blas.h" />
