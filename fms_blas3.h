@@ -49,9 +49,9 @@ namespace blas {
 	template<class T>
 	inline matrix<T> gemm(const matrix<T>& a, const matrix<T>& b, matrix<T> c, T alpha = 1, T beta = 0)
 	{
-		ensure(a.columns() == b.rows());
-		ensure(a.rows() == c.rows());
-		ensure(b.columns() == c.columns());
+		assert(a.columns() == b.rows());
+		assert(a.rows() == c.rows());
+		assert(b.columns() == c.columns());
 
 		mm<T>::ge(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 
@@ -69,24 +69,24 @@ namespace blas {
 
 			T _c[6];
 			matrix<T> c(2, 3, _c);
-			auto id2 = identity<T>(2);
+			auto id2 = identity<2, T>{};
 			c = gemm(id2, a, c);
-			ensure(c.equal(a));
+			assert(c.equal(a));
 
-			auto id3 = identity<T>(3);
+			auto id3 = identity<3, T>{};
 			std::fill(c.begin(), c.end(), T(-1));
 			c = gemm(a, id3, c);
-			ensure(c.equal(a));
+			assert(c.equal(a));
 
 			c.reshape(3, 2);
 			std::fill(c.begin(), c.end(), T(-1));
 			c = gemm(id3, transpose(a), c);
-			ensure(c.equal(transpose(a)));
+			assert(c.equal(transpose(a)));
 
 			c.reshape(3, 2);
 			std::fill(c.begin(), c.end(), T(-1));
 			c = gemm(transpose(a), id2, c);
-			ensure(c.equal(transpose(a)));
+			assert(c.equal(transpose(a)));
 
 			//c = id2 * a;
 		}
@@ -134,14 +134,14 @@ namespace blas {
 			// = [1 + 8, 2 + 10, 3 + 12
 			//    4      5       6]
 			trmm<T>(CblasLeft, CblasUpper, i, a);
-			ensure(a.rows() == 2);
-			ensure(a.columns() == 3);
-			ensure(a(0, 0) == 9);
-			ensure(a(0, 1) == 12);
-			ensure(a(0, 2) == 15);
-			ensure(a(1, 0) == 4);
-			ensure(a(1, 1) == 5);
-			ensure(a(1, 2) == 6);
+			assert(a.rows() == 2);
+			assert(a.columns() == 3);
+			assert(a(0, 0) == 9);
+			assert(a(0, 1) == 12);
+			assert(a(0, 2) == 15);
+			assert(a(1, 0) == 4);
+			assert(a(1, 1) == 5);
+			assert(a(1, 2) == 6);
 		}
 		{
 			T _i[] = { 1, 2, 3, 1 };
@@ -155,10 +155,10 @@ namespace blas {
 			// = [1      2      3
 			//    3 + 4, 6 + 5, 9 + 6]
 			trmm<T>(CblasLeft, CblasLower, i, a);
-			ensure(a.rows() == 2);
-			ensure(a.columns() == 3);
-			ensure(a(0, 0) == 1); ensure(a(0, 1) == 2); ensure(a(0, 2) == 3);
-			ensure(a(1, 0) == 7); ensure(a(1, 1) == 11); ensure(a(1, 2) == 15);
+			assert(a.rows() == 2);
+			assert(a.columns() == 3);
+			assert(a(0, 0) == 1); assert(a(0, 1) == 2); assert(a(0, 2) == 3);
+			assert(a(1, 0) == 7); assert(a(1, 1) == 11); assert(a(1, 2) == 15);
 		}
 		{
 			T _i[] = { 1, 2, 3, 1 };
@@ -174,14 +174,14 @@ namespace blas {
 			//    3, 6 + 4
 			//    5, 10 + 6]
 			trmm<T>(CblasRight, CblasUpper, i, a);
-			ensure(a.rows() == 3);
-			ensure(a.columns() == 2);
-			ensure(a(0, 0) == 1);
-			ensure(a(0, 1) == 4);
-			ensure(a(1, 0) == 3);
-			ensure(a(1, 1) == 10);
-			ensure(a(2, 0) == 5);
-			ensure(a(2, 1) == 16);
+			assert(a.rows() == 3);
+			assert(a.columns() == 2);
+			assert(a(0, 0) == 1);
+			assert(a(0, 1) == 4);
+			assert(a(1, 0) == 3);
+			assert(a(1, 1) == 10);
+			assert(a(2, 0) == 5);
+			assert(a(2, 1) == 16);
 		}
 		{
 			T _i[] = { 1, 2, 3, 1 };
@@ -197,14 +197,14 @@ namespace blas {
 			//    3 + 12, 4
 			//    5 + 18, 6]
 			trmm<T>(CblasRight, CblasLower, i, a);
-			ensure(a.rows() == 3);
-			ensure(a.columns() == 2);
-			ensure(a(0, 0) == 7);
-			ensure(a(0, 1) == 2);
-			ensure(a(1, 0) == 15);
-			ensure(a(1, 1) == 4);
-			ensure(a(2, 0) == 23);
-			ensure(a(2, 1) == 6);
+			assert(a.rows() == 3);
+			assert(a.columns() == 2);
+			assert(a(0, 0) == 7);
+			assert(a(0, 1) == 2);
+			assert(a(1, 0) == 15);
+			assert(a(1, 1) == 4);
+			assert(a(2, 0) == 23);
+			assert(a(2, 1) == 6);
 		}
 
 		return 0;
@@ -266,11 +266,11 @@ namespace blas {
 
 			trmm(tr(a, CblasUpper, CblasNonUnit), x);
 			trsm(tr(a, CblasUpper, CblasNonUnit), x);
-			ensure(x.equal(b));
+			assert(x.equal(b));
 
 			trmm(tr(a, CblasLower, CblasNonUnit), x);
 			trsm(tr(a, CblasLower, CblasNonUnit), x);
-			ensure(x.equal(b));
+			assert(x.equal(b));
 		}
 
 		return 0;
@@ -307,7 +307,7 @@ namespace blas {
 
 
 } // namespace blas
-
+/*
 template<class T>
 inline blas::matrix_alloc<T> operator*(const blas::matrix<T>& a, const blas::matrix<T>& b)
 {
@@ -316,3 +316,4 @@ inline blas::matrix_alloc<T> operator*(const blas::matrix<T>& a, const blas::mat
 
 	return c;
 }
+*/

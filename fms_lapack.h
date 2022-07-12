@@ -92,22 +92,7 @@ namespace lapack {
 	template<class X>
 	inline int potrf(CBLAS_UPLO uplo, blas::matrix<X>& a)
 	{
-		int ret = lapack<X>::potrf(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), a.data(), a.ld());
-
-		if (0 != ret) {
-			static char buf[1024];
-
-			if (ret < 0) {
-				sprintf_s(buf, "%s: parameter %d had an illegal value.", __FUNCTION__, -ret);
-			}
-			else {
-				sprintf_s(buf, "%s: the leading minor of order %d is not positive-definite", __FUNCTION__, ret);
-			}
-
-			throw std::runtime_error(buf);
-		}
-
-		return ret;
+		return lapack<X>::potrf(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), a.data(), a.ld());
 	}
 
 	// Computes the inverse of a symmetric (Hermitian) positive-definite matrix using the Cholesky factorization.
@@ -116,22 +101,7 @@ namespace lapack {
 	template<class X>
 	inline int potri(CBLAS_UPLO uplo, blas::matrix<X>& a)
 	{
-		int ret = lapack<X>::potri(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), a.data(), a.ld());
-		
-		if (0 != ret) {
-			static char buf[1024];
-
-			if (ret < 0) {
-				sprintf_s(buf, "%s: parameter %d had an illegal value.", __FUNCTION__, -ret);
-			}
-			else {
-				sprintf_s(buf, "%s: the %d-th diagonal element of the Cholesky factor is zeroe", __FUNCTION__, ret);
-			}
-
-			throw std::runtime_error(buf);
-		}
-
-		return ret;
+		return lapack<X>::potri(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), a.data(), a.ld());
 	}
 
 	// Solves a system of linear equations with a Cholesky-factored symmetric (Hermitian) positive-definite coefficient matrix.
@@ -142,19 +112,7 @@ namespace lapack {
 	template<class X, class Y>
 	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::matrix<Y>& b)
 	{
-		int ret = lapack<X>::potrs(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), b.ld(), a.data(), a.ld(), b.data(), b.ld());
-
-		if (0 != ret) {
-			static char buf[1024];
-
-			if (ret < 0) {
-				sprintf_s(buf, "%s: parameter %d had an illegal value.", __FUNCTION__, -ret);
-			}
-
-			throw std::runtime_error(buf);
-		}
-
-		return ret;
+		return lapack<X>::potrs(LAPACK_ROW_MAJOR, UpLo(uplo), a.rows(), b.ld(), a.data(), a.ld(), b.data(), b.ld());
 	}
 	template<class X, class Y>
 	inline int potrs(CBLAS_UPLO uplo, const blas::matrix<X>& a, blas::vector<Y>& b)
@@ -323,8 +281,10 @@ namespace lapack {
 	template<class T>
 	int gesv(blas::ge<T>& a, blas::ge<T>& b, int* ipiv = nullptr)
 	{
-		return lapack<T>::gesv(LAPACK_ROW_MAJOR, a.rows(), b.columns(), a.data(), a.ld(), 
-			ipiv ? ipiv : blas::vector_alloc<int>(a.rows()).data(), b.data(), b.ld());
+		if (!ipiv) {
+			ipiv = _alloca(a.rows());
+		}
+		return lapack<T>::gesv(LAPACK_ROW_MAJOR, a.rows(), b.columns(), a.data(), a.ld(), ipiv, b.data(), b.ld());
 	}
 
 

@@ -42,12 +42,6 @@
     <ClInclude Include="fms_blas3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fms_blas_matrix_alloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fms_blas_vector_alloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="fms_trnlsp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -57,7 +51,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="fms_blas.cpp">

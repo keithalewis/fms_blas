@@ -1,4 +1,4 @@
-// fms_blas_vector.h
+// fms_blas_vector.h - strided non-owning BLAS vector
 #pragma once
 //#pragma warning(push)
 #pragma warning(disable: 4820)
@@ -10,29 +10,27 @@
 #include <iterator>
 #include <numeric>
 #include <type_traits>
-#include "ensure.h"
+//#include "assert.h"
+
+// 
+void xerbla(const char* srname, const int* info, const int);
 
 namespace blas {
 
 	constexpr decltype(cblas_sdot)* sd = cblas_sdot;
 
 
-#pragma warning(push)
-#pragma warning(disable: 4724)
 	// mod returning in range [0, y) 
-	template<typename T>
-	//	requires std::is_integral_v<T>
-	inline T xmod(T x, T y)
+	constexpr int xmod(int x, int y) noexcept
 	{
 		if (y == 0) {
 			return 0;
 		}
 
-		T z = x % y;
+		int z = x % y;
 
 		return z + (z < 0)*y;
 	}
-#pragma warning(pop)
 
 	template<typename T>
 	class vector {
@@ -51,7 +49,6 @@ Non-owning strided view of array of T tailored to CBLAS.
 )xyzyx";
 
 		vector()
-			: n(0), v(nullptr), dn(1)
 		{ }
 
 		// Allocation and lifetime of T* managed externally.
@@ -82,10 +79,6 @@ Non-owning strided view of array of T tailored to CBLAS.
 		{
 			return n;
 		}
-		int incr() const
-		{
-			return dn;
-		}
 		pointer data()
 		{
 			return v;
@@ -94,15 +87,19 @@ Non-owning strided view of array of T tailored to CBLAS.
 		{
 			return v;
 		}
+		int incr() const
+		{
+			return dn;
+		}
 
 		// cyclic index
 		T operator[](int i) const
 		{
-			return v[xmod(i * dn, n * abs(dn))];
+			return v[xmod(i * dn, n * dn)];
 		}
 		T& operator[](int i)
 		{
-			return v[xmod(i * dn, n * abs(dn))];
+			return v[xmod(i * dn, n * dn)];
 		}
 
 		// usable in range for
@@ -112,7 +109,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		const auto end() const
 		{
-			return vector(0, v + n * abs(dn), dn);
+			return vector(0, v + n, dn);
 		}
 		value_type operator*() const
 		{
@@ -124,12 +121,8 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		vector& operator++()
 		{
-			ensure(dn > 0);
-
-			if (n) {
-				--n;
-				v += dn;
-			}
+			n -= dn;
+			v += dn;
 
 			return *this;
 		}
@@ -194,6 +187,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return *this;
 		}
 
+		T sum(T t0 = 0) const
+		{
+			return std::accumulate(begin(), end(), t0);
+		}
+
 		// take from front (i > 0) or back (i < 0)
 		vector take(int i) const
 		{
@@ -225,7 +223,10 @@ Non-owning strided view of array of T tailored to CBLAS.
 		// select elements using mask
 		vector& mask(const vector<T>& m, const vector<T>& w)
 		{
-			ensure(m.size() == w.size());
+			if (m.size() != w.size()) {
+				const int info = -1;
+				xerbla("vector<T>::mask", &info, 0);
+			}
 
 			int i = 0;
 			for (int j = 0; j < m.size(); ++j) {
@@ -246,8 +247,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 		// distribute elements using mask to vector
 		vector& spread(const vector<T>& m, const vector<T>& w)
 		{
-			ensure(size() == m.size());
-			// ensure(w.size() == sum(m));
+			if (m.sum() != w.size()) {
+				const int info = -1;
+				xerbla("vector<T>::mask", &info, 0);
+			}
+
 
 			int j = 0;
 			for (int i = 0; i < size(); ++i) {
@@ -264,23 +268,24 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 #ifdef _DEBUG
+//#include <cassert>
 		static int test()
 		{
 			{
 				blas::vector<T> v;
 
-				ensure(!v);
-				ensure(v.size() == 0);
-				ensure(v.data() == nullptr);
+				assert(!v);
+				assert(v.size() == 0);
+				assert(v.data() == nullptr);
 
 				blas::vector<T> v2{ v };
-				ensure(!v2);
-				ensure(v == v2);
-				ensure(!(v2 != v));
+				assert(!v2);
+				assert(v == v2);
+				assert(!(v2 != v));
 
 				v = v2;
-				ensure(!v);
-				ensure(v.equal(v2));
+				assert(!v);
+				assert(v.equal(v2));
 			}
 			{
 				T _v[3];
@@ -289,72 +294,72 @@ Non-owning strided view of array of T tailored to CBLAS.
 				T _v2[3];
 				vector<T> v2(_v2);
 				std::iota(v2.begin(), v2.end(), T(1));
-				ensure(v.equal(v2));
+				assert(v.equal(v2));
 
 				v2.copy(v);
-				ensure(v2.equal(v));
+				assert(v2.equal(v));
 
-				ensure(v);
-				ensure(v.size() == 3);
-				ensure(v[0] == 1);
-				ensure(v[1] == 2);
-				ensure(v[2] == 3);
-				ensure(v[4] == 2);
-				ensure(_v[1] == 2);
+				assert(v);
+				assert(v.size() == 3);
+				assert(v[0] == 1);
+				assert(v[1] == 2);
+				assert(v[2] == 3);
+				assert(v[4] == 2);
+				assert(_v[1] == 2);
 
 				v[1] = T(4);
-				ensure(v[1] == T(4));
+				assert(v[1] == T(4));
 				_v[1] = T(5);
-				ensure(v[1] == T(5));
-				ensure(v[v.size() + 1] == v[1]);
+				assert(v[1] == T(5));
+				assert(v[v.size() + 1] == v[1]);
 
 				vector<T> w(v);
-				ensure(v == w);
+				assert(v == w);
 			}
 			{
 				T _v[3];
 				auto v = vector<T>(3, _v).copy({ 1,2,3 });
-				ensure(v);
-				ensure(v.size() == 3);
-				ensure(v[0] == 1);
-				ensure(v[1] == 2);
-				ensure(v[2] == 3);
+				assert(v);
+				assert(v.size() == 3);
+				assert(v[0] == 1);
+				assert(v[1] == 2);
+				assert(v[2] == 3);
 
-				ensure(v.equal(3, _v));
-				ensure(v.equal({ 1, 2, 3 }));
-				ensure(v.equal(v));
+				assert(v.equal(3, _v));
+				assert(v.equal({ 1, 2, 3 }));
+				assert(v.equal(v));
 			}
 			{
 				T _v[] = { 1,2,3 };
 				vector<T> v(_v);
 				auto vt = v.take(2); // {1, 2}
-				ensure(vt.size() == 2);
-				ensure(vt[0] == 1);
+				assert(vt.size() == 2);
+				assert(vt[0] == 1);
 				auto vd = vt.drop(-1); // {1}
-				ensure(vd.size() == 1);
-				ensure(vd[0] = 1);
+				assert(vd.size() == 1);
+				assert(vd[0] = 1);
 				auto vdd = vd.drop(10);
-				ensure(vdd.size() == 0);
+				assert(vdd.size() == 0);
 			}
 			{
 				T _v[6];
-				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+				auto v = vector<T>(6, _v, 2).copy({ 1,2,3 });
 				auto vi = v.begin();
-				ensure(*vi == T(1));
+				assert(*vi == T(1));
 				++vi;
-				ensure(*vi == T(2));
+				assert(*vi == T(2));
 				vi++;
-				ensure(*vi == T(3));
+				assert(*vi == T(3));
 				++vi;
-				ensure(vi == v.end());
+				assert(vi == v.end());
 			}
 			{
 				T _v[6];
-				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+				auto v = vector<T>(6, _v, 2).copy({ 1,2,3 });
 
 				T i = 1;
 				for (auto vi : v) {
-					ensure(vi == i);
+					assert(vi == i);
 					i += 1;
 				}
 			}

@@ -5,8 +5,6 @@
 #include <mkl_cblas.h>
 #pragma warning(disable: 26812)
 #include "fms_blas_pack.h"
-#include "fms_blas_vector_alloc.h"
-#include "fms_blas_matrix_alloc.h"
 #include "fms_blas3.h"
 
 #define INTEL_ONEMKL "https://software.intel.com/content/www/us/en/develop/documentation/onemkl-developer-reference-c/"
@@ -82,6 +80,7 @@ namespace blas {
 	}
 
 	// e_j = (0,...,1_j,...0)
+	/*
 	template<class X>
 	inline blas::vector_alloc<double> e(int j, int n)
 	{
@@ -92,6 +91,7 @@ namespace blas {
 
 		return e_j;
 	}
+	*/
 
 	// x . (1, 1, ...)
 	template<class X>

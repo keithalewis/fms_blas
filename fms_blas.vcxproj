@@ -77,16 +77,22 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
+    <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\keith\source\repos\fms_blas\packages\inteltbb.devel.win.2021.1.1.133\lib\native\win-x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\keith\source\repos\fms_blas\packages\inteltbb.devel.win.2021.1.1.133\lib\native\win-x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -163,12 +169,10 @@
     <ClInclude Include="fms_blas1.h" />
     <ClInclude Include="fms_blas2.h" />
     <ClInclude Include="fms_blas3.h" />
-    <ClInclude Include="fms_blas_matrix_alloc.h" />
     <ClInclude Include="fms_blas_vector_iterator.h" />
     <ClInclude Include="fms_blas_matrix.h" />
     <ClInclude Include="fms_blas_vector.h" />
     <ClInclude Include="fms_lapack.h" />
-    <ClInclude Include="fms_blas_vector_alloc.h" />
     <ClInclude Include="fms_trnlsp.h" />
   </ItemGroup>
   <ItemGroup>
