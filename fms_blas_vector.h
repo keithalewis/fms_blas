@@ -14,15 +14,19 @@
 
 namespace blas {
 
-	constexpr decltype(cblas_sdot)* sd = cblas_sdot;
+	template<class T>
+	constexpr bool is_float = std::is_same_v<float, std::remove_cv_t<T>>;
+	template<class T>
+	constexpr bool is_double = std::is_same_v<double, std::remove_cv_t<T>>;
 
+	constexpr decltype(cblas_sdot)* sd = cblas_sdot;
 
 #pragma warning(push)
 #pragma warning(disable: 4724)
 	// mod returning in range [0, y) 
 	template<typename T>
 	//	requires std::is_integral_v<T>
-	inline T xmod(T x, T y)
+	constexpr T xmod(T x, T y)
 	{
 		if (y == 0) {
 			return 0;
@@ -50,79 +54,79 @@ static inline const char documentation[] = R"xyzyx(
 Non-owning strided view of array of T tailored to CBLAS.
 )xyzyx";
 
-		vector()
-			: n(0), v(nullptr), dn(1)
+		constexpr vector()
+			: n(0), dn(1), v(nullptr)
 		{ }
 
 		// Allocation and lifetime of T* managed externally.
-		vector(int n, T* v, int dn = 1)
-			: n(n), v(v), dn(dn)
+		constexpr vector(int n, T* v, int dn = 1)
+			: n(n), dn(dn), v(v)
 		{ }
 
 		// T _v[] = {1, ...}; vector<T> v(_v);
 		template<size_t N>
-		vector(T(&v)[N])
+		constexpr vector(T(&v)[N])
 			: n(static_cast<int>(N)), v(v), dn(1)
 		{ }
-		vector(const vector&) = default;
-		vector& operator=(const vector&) = default;
-		vector(vector&&) = default;
-		vector& operator=(vector&&) = default;
-		virtual ~vector()
+		constexpr vector(const vector&) = default;
+		constexpr vector& operator=(const vector&) = default;
+		constexpr vector(vector&&) = default;
+		constexpr vector& operator=(vector&&) = default;
+		constexpr ~vector()
 		{ }
 
-		explicit operator bool() const
+		constexpr explicit operator bool() const
 		{
 			return n != 0;
 		}
 		// size, pointer, and increment equality
-		auto operator<=>(const vector&) const = default;
+		constexpr auto operator<=>(const vector&) const = default;
 
-		int size() const
+		constexpr int size() const
 		{
 			return n;
 		}
-		int incr() const
+		constexpr int incr() const
 		{
 			return dn;
 		}
-		pointer data()
+		constexpr pointer data()
 		{
 			return v;
 		}
-		const pointer data() const
+		constexpr const pointer data() const
 		{
 			return v;
 		}
 
 		// cyclic index
-		T operator[](int i) const
+		constexpr T operator[](int i) const
 		{
 			return v[xmod(i * dn, n * abs(dn))];
 		}
-		T& operator[](int i)
+		constexpr T& operator[](int i)
 		{
 			return v[xmod(i * dn, n * abs(dn))];
 		}
 
 		// usable in range for
-		const auto begin() const
+		constexpr const auto begin() const
 		{
 			return *this;;
 		}
-		const auto end() const
+		constexpr const auto end() const
 		{
 			return vector(0, v + n * abs(dn), dn);
 		}
-		value_type operator*() const
+		constexpr value_type operator*() const
 		{
 			return *v;
 		}
-		reference operator*()
+		constexpr reference operator*()
 		{
 			return *v;
 		}
-		vector& operator++()
+		constexpr vector& operator++()
 		{
 			ensure(dn > 0);
 
@@ -133,7 +137,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 
 			return *this;
 		}
-		vector& operator++(int)
+		constexpr vector& operator++(int)
 		{
 			auto tmp{ *this };
 
@@ -143,7 +147,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// equal size and contents, any incr
-		bool equal(int _n, const T* _v, int _dn = 1) const
+		constexpr bool equal(int _n, const T* _v, int _dn = 1) const
 		{
 			if (n != _n)
 				return false;
@@ -155,17 +159,17 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return true;
 		}
 		// v.equal({w0, w1, ...})
-		bool equal(const std::initializer_list<T>& w)
+		constexpr bool equal(const std::initializer_list<T>& w)
 		{
 			return equal((int)w.size(), w.begin(), 1);
 		}
-		bool equal(const vector& w) const
+		constexpr bool equal(const vector& w) const
 		{
 			return equal(w.size(), w.data(), w.incr());
 		}
 
 		// assign values to data
-		vector& copy(int n_, const T* v_, int dn_ = 1)
+		constexpr vector& copy(int n_, const T* v_, int dn_ = 1)
 		{
 			for (int i_ = 0; i_ < n_; ++i_) {
 				operator[](i_) = v_[i_ * dn_];
@@ -174,18 +178,18 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return *this;
 		}
 		// auto v = vector<T>(n, _v, dn).copy({w0, ...});
-		vector& copy(const std::initializer_list<const T>& w)
+		constexpr vector& copy(const std::initializer_list<const T>& w)
 		{
 			return copy((int)w.size(), w.begin(), 1);
 		}
 		// auto v = vector<T>(n, _v, dn).copy(w);
-		vector& copy(const vector& w)
+		constexpr vector& copy(const vector& w)
 		{
 			return this == &w ? *this : copy(w.size(), w.data(), w.incr());
 		}
 
 		// set all values to x
-		vector& fill(T x)
+		constexpr vector& fill(T x)
 		{
 			for (int i = 0; i < n; ++i) {
 				operator[](i) = x;
@@ -195,7 +199,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// take from front (i > 0) or back (i < 0)
-		vector take(int i) const
+		constexpr vector take(int i) const
 		{
 			i = std::clamp(i, -n, n);
 
@@ -208,7 +212,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// drop from front (i > 0) or back (i < 0)
-		vector drop(int i) const
+		constexpr vector drop(int i) const
 		{
 			i = std::clamp(i, -n, n);
 
@@ -223,7 +227,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// select elements using mask
-		vector& mask(const vector<T>& m, const vector<T>& w)
+		constexpr vector& mask(const vector<T>& m, const vector<T>& w)
 		{
 			ensure(m.size() == w.size());
 
@@ -238,13 +242,13 @@ Non-owning strided view of array of T tailored to CBLAS.
 
 			return *this;
 		}
-		vector& mask(const vector<T>& m)
+		constexpr vector& mask(const vector<T>& m)
 		{
 			return mask(m, *this);
 		}
 
 		// distribute elements using mask to vector
-		vector& spread(const vector<T>& m, const vector<T>& w)
+		constexpr vector& spread(const vector<T>& m, const vector<T>& w)
 		{
 			ensure(size() == m.size());
 			// ensure(w.size() == sum(m));
@@ -267,20 +271,16 @@ Non-owning strided view of array of T tailored to CBLAS.
 		static int test()
 		{
 			{
-				blas::vector<T> v;
+				constexpr blas::vector<T> v;
 
-				ensure(!v);
-				ensure(v.size() == 0);
-				ensure(v.data() == nullptr);
+				static_assert(!v);
+				static_assert(v.size() == 0);
+				static_assert(v.data() == nullptr);
 
 				blas::vector<T> v2{ v };
 				ensure(!v2);
 				ensure(v == v2);
 				ensure(!(v2 != v));
-
-				v = v2;
-				ensure(!v);
-				ensure(v.equal(v2));
 			}
 			{
 				T _v[3];
@@ -388,12 +388,12 @@ Non-owning strided view of array of T tailored to CBLAS.
 	};
 
 	template<class T>
-	inline vector<T> take(int i, vector<T> v)
+	constexpr vector<T> take(int i, vector<T> v)
 	{
 		return v.take(i);
 	}
 	template<class T>
-	inline vector<T> drop(int i, vector<T> v)
+	constexpr vector<T> drop(int i, vector<T> v)
 	{
 		return v.drop(i);
 	}

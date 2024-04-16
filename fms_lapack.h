@@ -270,7 +270,7 @@ namespace lapack {
 	template<class T>
 	inline int pptr_test()
 	{
-		constexpr T eps = std::numeric_limits<T>::epsilon();
+		//constexpr T eps = std::numeric_limits<T>::epsilon();
 		const auto eq = [](T a, T b, T tol) { return fabs(a - b) <= tol;  };
 
 		{

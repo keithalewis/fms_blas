@@ -17,7 +17,7 @@ void xerbla(const char* srname, const int* info, const int)
 	else if (*info == 1000 or *info == 1089) {
 		sprintf_s(buf, "%s: insufficient workspace available", srname);
 	}
-	else if (info > 0) {
+	else if (*info > 0) {
 		sprintf_s(buf, "%s: returned error code %d", srname, *info);
 	}
 

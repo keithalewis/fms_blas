@@ -20,11 +20,6 @@
 
 namespace blas {
 
-	template<class T>
-	constexpr bool is_float = std::is_same_v<float, std::remove_cv_t<T>>;
-	template<class T>
-	constexpr bool is_double = std::is_same_v<double, std::remove_cv_t<T>>;
-
 	// stride 0 vector
 	template<class X>
 	class constant : public blas::vector<X> {

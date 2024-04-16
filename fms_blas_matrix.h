@@ -223,7 +223,7 @@ namespace blas {
 			T _a0[] = { 1, 2, 3, 4, 5, 6 };
 			vector<T> a0(_a0);
 			T _a[6], _b[6]; // backing store
-			T constexpr NaN = std::numeric_limits<T>::quiet_NaN();
+			//T constexpr NaN = std::numeric_limits<T>::quiet_NaN();
 
 			{
 				auto a = matrix<T>(2, 3, _a).copy(a0);
