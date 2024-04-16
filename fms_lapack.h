@@ -1,5 +1,6 @@
 ﻿// fms_lapack.h - LAPACK wrappers
 #pragma once
+#include <stdexcept>
 #include <mkl_lapacke.h>
 #include "fms_blas.h"
 

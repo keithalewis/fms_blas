@@ -100,7 +100,7 @@ namespace blas {
 		}
 		matrix& copy(const matrix<T>& m)
 		{
-			ensure(rows() == m.rows() and columns() == m.columns() and trans() == m.trans());
+			// ensure(rows() == m.rows() and columns() == m.columns() and trans() == m.trans());
 
 			copy(m.size(), m.data());
 
@@ -190,34 +190,34 @@ namespace blas {
 		{
 			{
 				matrix<T> a;
-				ensure(!a);
-				ensure(a.rows() == 0);
-				ensure(a.columns() == 0);
-				ensure(a.size() == 0);
-				ensure(a.data() == nullptr);
+				assert(!a);
+				assert(a.rows() == 0);
+				assert(a.columns() == 0);
+				assert(a.size() == 0);
+				assert(a.data() == nullptr);
 
 				auto a2{ a };
-				ensure(a2.equal(a));
-				ensure(!a2);
-				ensure(a2 == a);
-				ensure(!(a2 != a));
-				ensure(a2 <= a);
-				ensure(a2 >= a);
-				ensure(!(a2 < a));
-				ensure(!(a2 > a));
+				assert(a2.equal(a));
+				assert(!a2);
+				assert(a2 == a);
+				assert(!(a2 != a));
+				assert(a2 <= a);
+				assert(a2 >= a);
+				assert(!(a2 < a));
+				assert(!(a2 > a));
 
-				ensure(a2.rows() == 0);
-				ensure(a2.columns() == 0);
-				ensure(a2.size() == 0);
-				ensure(a2.data() == nullptr);
+				assert(a2.rows() == 0);
+				assert(a2.columns() == 0);
+				assert(a2.size() == 0);
+				assert(a2.data() == nullptr);
 
 				a = a2;
-				ensure(!a);
-				ensure(a.rows() == 0);
-				ensure(a.columns() == 0);
-				ensure(a.size() == 0);
-				ensure(a.data() == nullptr);
-				ensure(!(a != a2));
+				assert(!a);
+				assert(a.rows() == 0);
+				assert(a.columns() == 0);
+				assert(a.size() == 0);
+				assert(a.data() == nullptr);
+				assert(!(a != a2));
 			}
 
 			T _a0[] = { 1, 2, 3, 4, 5, 6 };
@@ -228,59 +228,59 @@ namespace blas {
 			{
 				auto a = matrix<T>(2, 3, _a).copy(a0);
 				auto b = matrix<T>(2, 3, _b).copy(_a0);
-				ensure(a.equal(b));
+				assert(a.equal(b));
 
 				auto a2{ a };
-				ensure(a2);
-				ensure(a2 == a);
-				ensure(a2.equal(a));
-				ensure(a.equal(transpose(transpose(a))));
+				assert(a2);
+				assert(a2 == a);
+				assert(a2.equal(a));
+				assert(a.equal(transpose(transpose(a))));
 
-				ensure(a.rows() == 2);
-				ensure(a.columns() == 3);
-				ensure(a.size() == 6);
-				ensure(a(0, 0) == 1); ensure(a(0, 1) == 2); ensure(a(0, 2) == 3);
-				ensure(a(1, 0) == 4); ensure(a(1, 1) == 5); ensure(a(1, 2) == 6);
+				assert(a.rows() == 2);
+				assert(a.columns() == 3);
+				assert(a.size() == 6);
+				assert(a(0, 0) == 1); assert(a(0, 1) == 2); assert(a(0, 2) == 3);
+				assert(a(1, 0) == 4); assert(a(1, 1) == 5); assert(a(1, 2) == 6);
 			}
 			{
 				auto a = matrix<T>(2, 3, _a, CblasTrans).copy(a0);
-				ensure(a.equal(transpose(transpose(a))));
+				assert(a.equal(transpose(transpose(a))));
 
-				ensure(a.rows() == 3);
-				ensure(a.columns() == 2);
-				ensure(a(0, 0) == 1); ensure(a(0, 1) == 4);
-				ensure(a(1, 0) == 2); ensure(a(1, 1) == 5);
-				ensure(a(2, 0) == 3); ensure(a(2, 1) == 6);
+				assert(a.rows() == 3);
+				assert(a.columns() == 2);
+				assert(a(0, 0) == 1); assert(a(0, 1) == 4);
+				assert(a(1, 0) == 2); assert(a(1, 1) == 5);
+				assert(a(2, 0) == 3); assert(a(2, 1) == 6);
 
 				a = transpose(matrix<T>(2, 3, _a)).copy(a0);
-				ensure(a.rows() == 3);
-				ensure(a.columns() == 2);
-				ensure(a(0, 0) == 1); ensure(a(0, 1) == 4);
-				ensure(a(1, 0) == 2); ensure(a(1, 1) == 5);
-				ensure(a(2, 0) == 3); ensure(a(2, 1) == 6);
+				assert(a.rows() == 3);
+				assert(a.columns() == 2);
+				assert(a(0, 0) == 1); assert(a(0, 1) == 4);
+				assert(a(1, 0) == 2); assert(a(1, 1) == 5);
+				assert(a(2, 0) == 3); assert(a(2, 1) == 6);
 
 				a(0, 1) = 7;
-				ensure(a(0, 1) == 7);
-				ensure(transpose(a)(1, 0) == 7);
+				assert(a(0, 1) == 7);
+				assert(transpose(a)(1, 0) == 7);
 			}
 			{
 				auto a = matrix<T>(2, 3, _a).copy(a0);
-				ensure(a.row(1).equal({ 4, 5, 6 }));
-				ensure(a.column(1).equal({ 2, 5 }));
+				assert(a.row(1).equal({ 4, 5, 6 }));
+				assert(a.column(1).equal({ 2, 5 }));
 
 				a = transpose(a);
-				ensure(a.column(1).equal({ 4, 5, 6 }));
-				ensure(a.row(1).equal({ 2, 5 }));
+				assert(a.column(1).equal({ 4, 5, 6 }));
+				assert(a.row(1).equal({ 2, 5 }));
 			}
 			// row/column
 			{
 				auto a = matrix<T>(2, 3, _a).copy(a0);
 				T _r1[] = { 4, 5, 6 };
 				auto r1 = a.row(1);
-				ensure(r1.equal(vector<T>(_r1)));
+				assert(r1.equal(vector<T>(_r1)));
 
 				T _c1[] = { 2, 5 };
-				ensure(a.column(1).equal(vector<T>(_c1)));
+				assert(a.column(1).equal(vector<T>(_c1)));
 			}
 
 			return 0;

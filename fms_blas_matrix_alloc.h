@@ -85,40 +85,40 @@ namespace blas {
 		{
 			{
 				matrix_alloc<T> m(2, 3);
-				ensure(m);
-				ensure(m.rows() == 2);
-				ensure(m.columns() == 3);
-				ensure(m.size() == 6);
-				ensure(m.trans() == CblasNoTrans);
-				ensure(m.data());
+				assert(m);
+				assert(m.rows() == 2);
+				assert(m.columns() == 3);
+				assert(m.size() == 6);
+				assert(m.trans() == CblasNoTrans);
+				assert(m.data());
 				m.fill(T(0));
 
 				matrix_alloc<T> m2{ m };
-				ensure(m2);
-				ensure(m2.rows() == 2);
-				ensure(m2.columns() == 3);
-				ensure(m2.size() == 6);
-				ensure(m2.trans() == CblasNoTrans);
-				ensure(m2.data());
-				ensure(m != m2);
-				ensure(m.equal(m2));
+				assert(m2);
+				assert(m2.rows() == 2);
+				assert(m2.columns() == 3);
+				assert(m2.size() == 6);
+				assert(m2.trans() == CblasNoTrans);
+				assert(m2.data());
+				assert(m != m2);
+				assert(m.equal(m2));
 
 				m = m2;
-				ensure(!(m == m2)); // different pointers
-				ensure(m.equal(m2));
+				assert(!(m == m2)); // different pointers
+				assert(m.equal(m2));
 
 				m(0, 1) = T(7);
-				ensure(!m.equal(m2));
+				assert(!m.equal(m2));
 			}
 			{
 				T a_[] = { 1,2,3,4,5,6 };
 				matrix<T> a(2, 3, a_);
 				matrix_alloc<T> m(2, 3);
 				m.copy(a);
-				ensure(m.equal(a));
+				assert(m.equal(a));
 				m.fill(0);
 				m = a;
-				ensure(m.equal(a));
+				assert(m.equal(a));
 			}
 			{
 				auto id = identity<T>(3);

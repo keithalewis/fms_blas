@@ -158,7 +158,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="fms_blas_pack.h" />
-    <ClInclude Include="ensure.h" />
     <ClInclude Include="fms_blas.h" />
     <ClInclude Include="fms_blas1.h" />
     <ClInclude Include="fms_blas2.h" />

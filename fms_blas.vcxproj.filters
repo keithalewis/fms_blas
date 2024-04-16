@@ -18,9 +18,6 @@
     <ClInclude Include="fms_blas.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ensure.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="fms_lapack.h">
       <Filter>Header Files</Filter>
     </ClInclude>

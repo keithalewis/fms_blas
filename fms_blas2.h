@@ -40,8 +40,8 @@ namespace blas {
 	template<class T>
 	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = T(1), T beta = T(0))
 	{
-		ensure(a.columns() == x.size());
-		ensure(a.rows() == y.size());
+		if (a.columns() != x.size()) return vector<T>{};
+		if (a.rows() != y.size()) return vector<T>{};
 
 		// uses a.r and a.c, not a.rows() and a.columns()
 		mv<T>::ge(CblasRowMajor, a.trans(), a.r, a.c, alpha, a.data(), a.c, x.data(), x.incr(), beta, y.data(), y.incr());
@@ -101,8 +101,8 @@ namespace blas {
 	template<class T, class U>
 	inline vector<U> tpmv(const tp<T>& a, vector<U> x, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		ensure(a.rows() == a.columns());
-		ensure(a.rows() == x.size());
+		if (a.rows() != a.columns()) return vector<U>{};
+		if (a.rows() != x.size()) return vector<U>{};
 
 		mv<T>::tp(CblasRowMajor, a.uplo(), a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
 
@@ -119,9 +119,9 @@ namespace blas {
 			tp<T> A(matrix(3, a), CblasLower, CblasNonUnit);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
-			ensure(1                     == x[0]);
-			ensure(2 * 1 + 3 * 2         == x[1]);
-			ensure(4 * 1 + 5 * 2 + 6 * 3 == x[2]);
+			assert(1                     == x[0]);
+			assert(2 * 1 + 3 * 2         == x[1]);
+			assert(4 * 1 + 5 * 2 + 6 * 3 == x[2]);
 		}
 		{
 			T a[] = { 1,
@@ -131,9 +131,9 @@ namespace blas {
 			A = transpose(A);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
-			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
-			ensure(        3 * 2 + 5 * 3 == x[1]);
-			ensure(                6 * 3 == x[2]);
+			assert(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
+			assert(        3 * 2 + 5 * 3 == x[1]);
+			assert(                6 * 3 == x[2]);
 		}
 		{
 			T a[] = { 1, 2, 4,
@@ -142,9 +142,9 @@ namespace blas {
 			tp<T> A(matrix(3, a), CblasUpper, CblasNonUnit);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
-			ensure(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
-			ensure(        3 * 2 + 5 * 3 == x[1]);
-			ensure(                6 * 3 == x[2]);
+			assert(1 * 1 + 2 * 2 + 4 * 3 == x[0]);
+			assert(        3 * 2 + 5 * 3 == x[1]);
+			assert(                6 * 3 == x[2]);
 		}
 		{
 			T a[] = { 1, 2, 4,
@@ -154,9 +154,9 @@ namespace blas {
 			A = transpose(A);
 			T x[] = { 1, 2, 3 };
 			tpmv(A, vector(x));
-			ensure(1 * 1                 == x[0]);
-			ensure(2 * 1 + 3 * 2         == x[1]);
-			ensure(4 * 1 + 5 * 2 + 6 * 3 == x[2]);
+			assert(1 * 1                 == x[0]);
+			assert(2 * 1 + 3 * 2         == x[1]);
+			assert(4 * 1 + 5 * 2 + 6 * 3 == x[2]);
 		}
 
 		return 0;
@@ -170,8 +170,8 @@ namespace blas {
 	template<class T>
 	inline vector<T> trmv(const tr<T>& a, vector<T> x)
 	{
-		ensure(a.rows() == a.columns());
-		ensure(a.rows() == x.size());
+		if (a.rows() != a.columns()) return vector<T>{};
+		if (a.rows() != x.size()) return vector<T>{};
 
 		mv<T>::tr(CblasRowMajor, a.uplo(), a.trans(), a.diag(), a.rows(), a.data(), a.ld(), x.data(), x.incr());
 
@@ -184,9 +184,9 @@ namespace blas {
 	template<class T>
 	inline vector<T> spmv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = 1, T beta = 0)
 	{
-		ensure(a.rows() == a.columns());
-		ensure(a.rows() == x.size());
-		ensure(x.size() == y.size());
+		if (a.rows() != a.columns()) return vector<T>{};
+		if (a.rows() != x.size()) return vector<T>{};
+		if (x.size() != y.size()) return vector<T>{};
 
 		mv<T>::sp(CblasRowMajor, uplo, a.rows(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data().y.incr());
 
@@ -199,9 +199,9 @@ namespace blas {
 	template<class T>
 	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = 1, T beta = 0)
 	{
-		ensure(a.rows() == a.columns());
-		ensure(a.rows() == x.size());
-		ensure(x.size() == y.size());
+		if (a.rows() != a.columns()) return vector<T>{};
+		if (a.rows() != x.size()) return vector<T>{};
+		if (x.size() != y.size()) return vector<T>{};
 
 		mv<T>::sy(CblasRowMajor, uplo, a.rows(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data().y.incr());
 
@@ -276,15 +276,15 @@ namespace blas {
 			y2.copy(b);
 			y2 = trmv<T>(tr(a, CblasUpper, CblasNonUnit), y2);
 			y2 = trsv<T>(tr(a, CblasUpper, CblasNonUnit), y2);
-			ensure(y2.equal(b));
+			assert(y2.equal(b));
 
 			a.copy({ 1, 0, 2, 3 });
 			y1 = gemv<T>(a, b, y1);
 			y2.copy(b);
 			y2 = trmv<T>(tr(a, CblasLower, CblasNonUnit), y2);
-			ensure(y2.equal(y1));
+			assert(y2.equal(y1));
 			y2 = trsv<T>(tr(a, CblasLower, CblasNonUnit), y2);
-			ensure(y2.equal(b));
+			assert(y2.equal(b));
 		}
 
 		return 0;
@@ -315,8 +315,8 @@ namespace blas {
 			std::iota(a.begin(), a.end(), T(1));
 
 			scal<T>(vector<T>(2, _v), a); // rows
-			ensure(a(0, 0) == 1);   ensure(a(0, 1) == 2);   ensure(a(0, 2) == 3);
-			ensure(a(1, 0) == 2 * 4); ensure(a(1, 1) == 2 * 5); ensure(a(1, 2) == 2 * 6);
+			assert(a(0, 0) == 1);   assert(a(0, 1) == 2);   assert(a(0, 2) == 3);
+			assert(a(1, 0) == 2 * 4); assert(a(1, 1) == 2 * 5); assert(a(1, 2) == 2 * 6);
 		}
 		{
 			T _a[6];
@@ -325,9 +325,9 @@ namespace blas {
 			// {1 4; 2 5; 3 6}
 
 			scal<T>(vector<T>(3, _v), a); // columns
-			ensure(a(0, 0) == 1);   ensure(a(0, 1) == 4);
-			ensure(a(1, 0) == 2 * 2); ensure(a(1, 1) == 2 * 5);
-			ensure(a(2, 0) == 3 * 3); ensure(a(2, 1) == 3 * 6);
+			assert(a(0, 0) == 1);   assert(a(0, 1) == 4);
+			assert(a(1, 0) == 2 * 2); assert(a(1, 1) == 2 * 5);
+			assert(a(2, 0) == 3 * 3); assert(a(2, 1) == 3 * 6);
 		}
 
 		return 0;
