@@ -1,4 +1,4 @@
-// fms_blas_vector.h
+// fms_blas_vector.h - strided non-owning BLAS vector
 #pragma once
 //#pragma warning(push)
 #pragma warning(disable: 4820)
@@ -11,6 +11,9 @@
 #include <numeric>
 #include <type_traits>
 //#include "ensure.h"
+
+// 
+void xerbla(const char* srname, const int* info, const int);
 
 namespace blas {
 
@@ -32,11 +35,10 @@ namespace blas {
 			return 0;
 		}
 
-		T z = x % y;
+		int z = x % y;
 
 		return z + (z < 0)*y;
 	}
-#pragma warning(pop)
 
 	template<typename T>
 	class vector {
@@ -98,15 +100,19 @@ Non-owning strided view of array of T tailored to CBLAS.
 		{
 			return v;
 		}
+		int incr() const
+		{
+			return dn;
+		}
 
 		// cyclic index
 		constexpr T operator[](int i) const
 		{
-			return v[xmod(i * dn, n * abs(dn))];
+			return v[xmod(i * dn, n * dn)];
 		}
 		constexpr T& operator[](int i)
 		{
-			return v[xmod(i * dn, n * abs(dn))];
+			return v[xmod(i * dn, n * dn)];
 		}
 
 		// usable in range for
@@ -116,7 +122,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		constexpr const auto end() const
 		{
-			return vector(0, v + n * abs(dn), dn);
+			return vector(0, v + n, dn);
 		}
 		constexpr value_type operator*() const
 		{
@@ -196,6 +202,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 			return *this;
 		}
 
+		T sum(T t0 = 0) const
+		{
+			return std::accumulate(begin(), end(), t0);
+		}
+
 		// take from front (i > 0) or back (i < 0)
 		constexpr vector take(int i) const
 		{
@@ -261,6 +272,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 #ifdef _DEBUG
+//#include <cassert>
 		static int test()
 		{
 			{
@@ -331,7 +343,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 			}
 			{
 				T _v[6];
-				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+				auto v = vector<T>(6, _v, 2).copy({ 1,2,3 });
 				auto vi = v.begin();
 				assert(*vi == T(1));
 				++vi;
@@ -343,7 +355,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 			}
 			{
 				T _v[6];
-				auto v = vector<T>(3, _v, 2).copy({ 1,2,3 });
+				auto v = vector<T>(6, _v, 2).copy({ 1,2,3 });
 
 				T i = 1;
 				for (auto vi : v) {

@@ -40,8 +40,8 @@ namespace blas {
 	template<class T>
 	inline vector<T> gemv(const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = T(1), T beta = T(0))
 	{
-		if (a.columns() != x.size()) return vector<T>{};
-		if (a.rows() != y.size()) return vector<T>{};
+		ensure(a.columns() == x.size());
+		ensure(a.rows() == y.size());
 
 		// uses a.r and a.c, not a.rows() and a.columns()
 		mv<T>::ge(CblasRowMajor, a.trans(), a.r, a.c, alpha, a.data(), a.c, x.data(), x.incr(), beta, y.data(), y.incr());
@@ -73,6 +73,7 @@ namespace blas {
 			assert(2 * 1 + 5 * 2 == y[1]);
 			assert(3 * 1 + 6 * 2 == y[2]);
 		}
+		/*
 		{
 			T a[] = { 1, 2, 3, 4, 5, 6 };
 			T x[] = { 1, 2, 3 };
@@ -88,6 +89,7 @@ namespace blas {
 			assert(2 * 1 + 5 * 2 == y[1]);
 			assert(3 * 1 + 6 * 2 == y[2]);
 		}
+		*/
 
 		return 0;
 	}
@@ -101,8 +103,8 @@ namespace blas {
 	template<class T, class U>
 	inline vector<U> tpmv(const tp<T>& a, vector<U> x, CBLAS_DIAG diag = CblasNonUnit)
 	{
-		if (a.rows() != a.columns()) return vector<U>{};
-		if (a.rows() != x.size()) return vector<U>{};
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
 
 		mv<T>::tp(CblasRowMajor, a.uplo(), a.trans(), diag, a.rows(), a.data(), x.data(), x.incr());
 
@@ -170,8 +172,8 @@ namespace blas {
 	template<class T>
 	inline vector<T> trmv(const tr<T>& a, vector<T> x)
 	{
-		if (a.rows() != a.columns()) return vector<T>{};
-		if (a.rows() != x.size()) return vector<T>{};
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
 
 		mv<T>::tr(CblasRowMajor, a.uplo(), a.trans(), a.diag(), a.rows(), a.data(), a.ld(), x.data(), x.incr());
 
@@ -184,9 +186,9 @@ namespace blas {
 	template<class T>
 	inline vector<T> spmv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = 1, T beta = 0)
 	{
-		if (a.rows() != a.columns()) return vector<T>{};
-		if (a.rows() != x.size()) return vector<T>{};
-		if (x.size() != y.size()) return vector<T>{};
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
+		ensure(x.size() == y.size());
 
 		mv<T>::sp(CblasRowMajor, uplo, a.rows(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data().y.incr());
 
@@ -199,9 +201,9 @@ namespace blas {
 	template<class T>
 	inline vector<T> symv(CBLAS_UPLO uplo, const matrix<T>& a, const vector<T>& x, vector<T> y, T alpha = 1, T beta = 0)
 	{
-		if (a.rows() != a.columns()) return vector<T>{};
-		if (a.rows() != x.size()) return vector<T>{};
-		if (x.size() != y.size()) return vector<T>{};
+		ensure(a.rows() == a.columns());
+		ensure(a.rows() == x.size());
+		ensure(x.size() == y.size());
 
 		mv<T>::sy(CblasRowMajor, uplo, a.rows(), alpha, a.data(), a.ld(), x.data(), x.incr(), beta, y.data().y.incr());
 
@@ -368,7 +370,7 @@ namespace blas {
 
 
 } // namespace blas
-
+/*
 template<class T>
 inline blas::vector_alloc<T> operator*(const blas::ge<T>& a, const blas::vector<T>& x)
 {
@@ -376,3 +378,4 @@ inline blas::vector_alloc<T> operator*(const blas::ge<T>& a, const blas::vector<
 
 	return blas::gemv(a, x, y);
 }
+*/

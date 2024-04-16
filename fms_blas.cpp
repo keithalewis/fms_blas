@@ -13,10 +13,8 @@ int fms_blas_test()
 	blas::pack_test<X>();
 	blas::unpack_test<X>();
 	blas::vector<X>::test();
-	blas::vector_alloc<X>::test();
 	blas::matrix<X>::test();
 	blas::tp_test<X>();
-	blas::matrix_alloc<X>::test();
 	blas::blas1_test<X>();
 	blas::blas2_test<X>();
 	blas::blas3_test<X>();

@@ -113,7 +113,7 @@ namespace blas {
 		}
 		matrix& reshape(int r_, int c_)
 		{
-			// ensure (r_*c_ < r*c);
+			// assert (r_*c_ < r*c);
 			r = r_;
 			c = c_;
 
@@ -289,6 +289,22 @@ namespace blas {
 #endif // _DEBUG
 
 	}; // matrix
+
+
+	template<std::size_t N, class T>
+	class identity : public matrix<T> {
+		T _a[N*N];
+	public:
+		identity()
+			: matrix<T>(static_cast<int>(N), nullptr)
+		{
+			matrix<T>::a = _a;
+			memset(_a, 0, N * N);
+			for (std::size_t i = 0; i < N; ++i) {
+				_a[i*(N + 1)] = 1;
+			}
+		}
+	};
 
 	template<class T>
 	inline matrix<T> transpose(matrix<T> m)

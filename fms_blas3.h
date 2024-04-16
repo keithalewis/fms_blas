@@ -49,9 +49,9 @@ namespace blas {
 	template<class T>
 	inline matrix<T> gemm(const matrix<T>& a, const matrix<T>& b, matrix<T> c, T alpha = 1, T beta = 0)
 	{
-		if (a.columns() != b.rows()) return matrix<T>{};
-		if (a.rows() != c.rows()) return matrix<T>{};
-		if (b.columns() != c.columns()) return matrix<T>{};
+		ensure(a.columns() == b.rows());
+		ensure(a.rows() == c.rows());
+		ensure(b.columns() == c.columns());
 
 		mm<T>::ge(CblasRowMajor, a.trans(), b.trans(), a.rows(), b.columns(), a.columns(), alpha, a.data(), a.ld(), b.data(), b.ld(), beta, c.data(), c.ld());
 
@@ -69,11 +69,11 @@ namespace blas {
 
 			T _c[6];
 			matrix<T> c(2, 3, _c);
-			auto id2 = identity<T>(2);
+			auto id2 = identity<2, T>{};
 			c = gemm(id2, a, c);
 			assert(c.equal(a));
 
-			auto id3 = identity<T>(3);
+			auto id3 = identity<3, T>{};
 			std::fill(c.begin(), c.end(), T(-1));
 			c = gemm(a, id3, c);
 			assert(c.equal(a));
@@ -307,7 +307,7 @@ namespace blas {
 
 
 } // namespace blas
-
+/*
 template<class T>
 inline blas::matrix_alloc<T> operator*(const blas::matrix<T>& a, const blas::matrix<T>& b)
 {
@@ -316,3 +316,4 @@ inline blas::matrix_alloc<T> operator*(const blas::matrix<T>& a, const blas::mat
 
 	return c;
 }
+*/
