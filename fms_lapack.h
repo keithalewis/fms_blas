@@ -136,8 +136,8 @@ namespace lapack {
 			blas::matrix<T> a_(2, 2, a);
 			potrf(CblasLower, a_);
 			assert(1 == a[0]);
-			assert(a[1] == a[1]);
-			assert(2 == a[2]);
+			assert(2 == a[1]);
+			assert(eq(2, a[2], eps));
 			assert(3 == a[3]);
 
 			//a[1] = 0;
@@ -167,10 +167,10 @@ namespace lapack {
 					  2,13 };
 			blas::matrix<T> a_(2, 2, a);
 			potrf(CblasUpper, a_);
-			assert(1 == a[0]);
-			assert(2 == a[1]);
-			assert(a[2] == a[2]);
-			assert(3 == a[3]);
+			assert(eq(1, a[0], eps));
+			assert(eq(2, a[1], eps));
+			assert(eq(2, a[2], eps));
+			assert(eq(3, a[3], eps));
 
 			potri(CblasUpper, a_); // a^-1;
 			assert(a[2] == a[2]); // upper corner untouched

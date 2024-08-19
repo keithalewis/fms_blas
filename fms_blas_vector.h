@@ -12,6 +12,12 @@
 #include <type_traits>
 //#include "ensure.h"
 
+
+#define BLAS_HASH(x) #x
+#define BLAS_STRX(x) BLAS_HASH(x)
+#define ensure(x) if (!(x)) throw std::runtime_error(__FILE__ "(" BLAS_STRX(__LINE__) "): " #x)	
+
+
 // 
 void xerbla(const char* srname, const int* info, const int);
 
@@ -100,19 +106,14 @@ Non-owning strided view of array of T tailored to CBLAS.
 		{
 			return v;
 		}
-		int incr() const
-		{
-			return dn;
-		}
 
-		// cyclic index
 		constexpr T operator[](int i) const
 		{
-			return v[xmod(i * dn, n * dn)];
+			return v[i * dn];
 		}
 		constexpr T& operator[](int i)
 		{
-			return v[xmod(i * dn, n * dn)];
+			return v[i * dn];
 		}
 
 		// usable in range for
@@ -135,7 +136,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		constexpr vector& operator++()
 		{
 			if (n) {
-				--n;
+				n -= dn;
 				v += dn;
 			}
 
@@ -157,7 +158,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 				return false;
 
 			for (int i = 0; i < n; ++i)
-				if (operator[](i) != _v[i * _dn])
+				if (v[i * dn] != _v[i * _dn])
 					return false;
 
 			return true;
@@ -196,7 +197,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		constexpr vector& fill(T x)
 		{
 			for (int i = 0; i < n; ++i) {
-				operator[](i) = x;
+				v[i * dn] = x;
 			}
 
 			return *this;
@@ -236,7 +237,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 
 		// select elements using mask
-		constexpr vector& mask(const vector<T>& m, const vector<T>& w)
+		constexpr vector& mask(const vector<T>& w, const vector<T>& m)
 		{
 			int i = 0;
 			for (int j = 0; j < m.size(); ++j) {
@@ -251,11 +252,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 		}
 		constexpr vector& mask(const vector<T>& m)
 		{
-			return mask(m, *this);
+			return mask(*this, m);
 		}
 
 		// distribute elements using mask to vector
-		constexpr vector& spread(const vector<T>& m, const vector<T>& w)
+		constexpr vector& spread(const vector<T>& w, const vector<T>& m)
 		{
 			int j = 0;
 			for (int i = 0; i < size(); ++i) {
@@ -282,10 +283,10 @@ Non-owning strided view of array of T tailored to CBLAS.
 				static_assert(v.size() == 0);
 				static_assert(v.data() == nullptr);
 
-				blas::vector<T> v2{ v };
-				assert(!v2);
-				assert(v == v2);
-				assert(!(v2 != v));
+				constexpr blas::vector<T> v2{ v };
+				static_assert(!v2);
+				static_assert(v == v2);
+				static_assert(!(v2 != v));
 			}
 			{
 				T _v[3];
@@ -304,14 +305,11 @@ Non-owning strided view of array of T tailored to CBLAS.
 				assert(v[0] == 1);
 				assert(v[1] == 2);
 				assert(v[2] == 3);
-				assert(v[4] == 2);
-				assert(_v[1] == 2);
 
 				v[1] = T(4);
 				assert(v[1] == T(4));
 				_v[1] = T(5);
 				assert(v[1] == T(5));
-				assert(v[v.size() + 1] == v[1]);
 
 				vector<T> w(v);
 				assert(v == w);
@@ -380,7 +378,7 @@ Non-owning strided view of array of T tailored to CBLAS.
 				T m[] = { 1, 0, 1 };
 				T w[3];
 
-				vector<T>(w).spread(vector<T>(m), vector<T>(v));
+				vector<T>(w).spread(vector<T>(v), vector<T>(m));
 				assert(vector<T>(w).equal({ 1, 0, 2 }));
 				vector<T> w_(w);
 				w_.mask(vector<T>(m));
@@ -393,12 +391,12 @@ Non-owning strided view of array of T tailored to CBLAS.
 	};
 
 	template<class T>
-	constexpr vector<T> take(int i, vector<T> v)
+	constexpr vector<T> take(vector<T> v, int i)
 	{
 		return v.take(i);
 	}
 	template<class T>
-	constexpr vector<T> drop(int i, vector<T> v)
+	constexpr vector<T> drop(vector<T> v, int i)
 	{
 		return v.drop(i);
 	}

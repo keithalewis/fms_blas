@@ -88,11 +88,15 @@
     <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
     <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\keith\source\repos\fms_blas\packages\inteltbb.devel.win.2021.1.1.133\lib\native\win-x64;$(LibraryPath)</LibraryPath>
+    <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
+    <interface-MKL-static-win-x64>lp64</interface-MKL-static-win-x64>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>C:\Users\keith\source\repos\fms_blas\packages\intelmkl.static.win-x64.2022.0.3.171\lib\native\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\keith\source\repos\fms_blas\packages\inteltbb.devel.win.2021.1.1.133\lib\native\win-x64;$(LibraryPath)</LibraryPath>
+    <linkage-MKL-static-win-x64>static</linkage-MKL-static-win-x64>
+    <threading-MKL-static-win-x64>sequential</threading-MKL-static-win-x64>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -141,6 +145,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>mkl_core.lib;mkl_lapack95_lp64.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,7 +168,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="blas_concept.h" />
     <ClInclude Include="fms_blas_pack.h" />
     <ClInclude Include="fms_blas.h" />
     <ClInclude Include="fms_blas1.h" />
@@ -176,6 +180,7 @@
     <ClInclude Include="fms_trnlsp.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
@@ -187,5 +192,21 @@
     <Natvis Include="blas.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\intelopenmp.redist.win.2024.2.1.1083\build\native\intelopenmp.redist.win.targets" Condition="Exists('packages\intelopenmp.redist.win.2024.2.1.1083\build\native\intelopenmp.redist.win.targets')" />
+    <Import Project="packages\intelopenmp.devel.win.2024.2.1.1083\build\native\intelopenmp.devel.win.targets" Condition="Exists('packages\intelopenmp.devel.win.2024.2.1.1083\build\native\intelopenmp.devel.win.targets')" />
+    <Import Project="packages\inteltbb.redist.win.2021.13.1.11\build\native\inteltbb.redist.win.targets" Condition="Exists('packages\inteltbb.redist.win.2021.13.1.11\build\native\inteltbb.redist.win.targets')" />
+    <Import Project="packages\inteltbb.devel.win.2021.13.1.11\build\native\inteltbb.devel.win.targets" Condition="Exists('packages\inteltbb.devel.win.2021.13.1.11\build\native\inteltbb.devel.win.targets')" />
+    <Import Project="packages\intelmkl.static.win-x64.2024.2.1.102\build\native\intelmkl.static.win-x64.targets" Condition="Exists('packages\intelmkl.static.win-x64.2024.2.1.102\build\native\intelmkl.static.win-x64.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\intelopenmp.redist.win.2024.2.1.1083\build\native\intelopenmp.redist.win.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\intelopenmp.redist.win.2024.2.1.1083\build\native\intelopenmp.redist.win.targets'))" />
+    <Error Condition="!Exists('packages\intelopenmp.devel.win.2024.2.1.1083\build\native\intelopenmp.devel.win.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\intelopenmp.devel.win.2024.2.1.1083\build\native\intelopenmp.devel.win.targets'))" />
+    <Error Condition="!Exists('packages\inteltbb.redist.win.2021.13.1.11\build\native\inteltbb.redist.win.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\inteltbb.redist.win.2021.13.1.11\build\native\inteltbb.redist.win.targets'))" />
+    <Error Condition="!Exists('packages\inteltbb.devel.win.2021.13.1.11\build\native\inteltbb.devel.win.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\inteltbb.devel.win.2021.13.1.11\build\native\inteltbb.devel.win.targets'))" />
+    <Error Condition="!Exists('packages\intelmkl.static.win-x64.2024.2.1.102\build\native\intelmkl.static.win-x64.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\intelmkl.static.win-x64.2024.2.1.102\build\native\intelmkl.static.win-x64.targets'))" />
+  </Target>
 </Project>
