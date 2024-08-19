@@ -54,5 +54,5 @@ updates the content of `matrix& b` with `alpha op(a)*b` and the function
 	
 ## Remarks
 
-Vector equal is looser than matrix equal since the vectors do not need to have the same increment.
-Matrix equal requires both to have the same shape, transpose flag, and contents.
+Vector `equal` is looser than matrix equal since the vectors do not need to have the same increment.
+Matrix `equal` requires both to have the same shape, transpose flag, and contents.
